@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSessao } from "@/components/Sessao";
+import Button from "@/components/ui/Button";
 
 const LINKS = [
   { href: "/trilha", rotulo: "Trilha", icone: "🌐" },
@@ -56,12 +57,9 @@ export default function NavRpg() {
       </div>
       <div className="flex shrink-0 items-center gap-3 text-sm">
         <span className="text-ouro">◈ {moedas} cr</span>
-        <button
-          onClick={sair}
-          className="rounded-lg px-2 py-1 text-xs text-texto-suave transition-colors duration-200 hover:bg-erro/10 hover:text-erro"
-        >
+        <Button variante="fantasma" tamanho="sm" onClick={sair} className="hover:text-erro">
           Desconectar
-        </button>
+        </Button>
       </div>
     </nav>
   );

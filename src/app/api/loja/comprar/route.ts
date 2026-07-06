@@ -12,6 +12,14 @@ export async function POST(req: Request) {
   const item = getItem(String(itemId ?? ""));
   if (!item)
     return NextResponse.json({ erro: "Item inválido." }, { status: 400 });
+  // Itens exclusivos só podem ser concedidos por conquistasPvp.ts (marco de
+  // vitórias) — sem este bloqueio, o preço 0 desses itens nunca falha no
+  // checkout de saldo e qualquer POST direto com o id concede o item.
+  if (item.exclusivo)
+    return NextResponse.json(
+      { erro: "Este item é exclusivo — não está à venda no Mercado." },
+      { status: 403 },
+    );
 
   const conn = await pool.getConnection();
   try {

@@ -3,22 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FASES, XP_TOTAL } from "@/content/trilha1";
+import { XP_TOTAL } from "@/content/trilha1";
 import { useSessao } from "@/components/Sessao";
+import Button from "@/components/ui/Button";
 
 type Aluno = {
   id: number;
   nome: string;
   email: string;
-  fases_concluidas: number;
-  xp_total: number;
-  ultima_atividade: string | null;
+  fasesConcluidas: number;
+  xpTotal: number;
+  ultimaAtividade: string | null;
+  proximaFasePendente: number | null;
+  vitorias: number;
+  derrotas: number;
+  servidorTier: string | null;
 };
 
 export default function PainelProfessor() {
   const router = useRouter();
   const { carregado, usuario, sair } = useSessao();
   const [alunos, setAlunos] = useState<Aluno[] | null>(null);
+  const [totalFases, setTotalFases] = useState(0);
   const [erro, setErro] = useState<string | null>(null);
 
   // Só professor entra aqui.
@@ -39,7 +45,10 @@ export default function PainelProfessor() {
       .then((r) => r.json())
       .then((d) => {
         if (d.erro) setErro(d.erro);
-        else setAlunos(d.alunos);
+        else {
+          setAlunos(d.alunos);
+          setTotalFases(d.totalFases ?? 0);
+        }
       })
       .catch(() => setErro("Não consegui carregar os dados."));
   }, [usuario]);
@@ -52,17 +61,15 @@ export default function PainelProfessor() {
     );
   }
 
-  const totalFases = FASES.length;
-
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-4xl px-6 py-10">
       <div className="flex items-center justify-between">
         <Link href="/trilha" className="text-sm text-texto-suave hover:text-texto">
           ← Trilha
         </Link>
-        <button onClick={sair} className="text-xs text-texto-suave hover:text-erro">
+        <Button variante="fantasma" tamanho="sm" onClick={sair}>
           Sair
-        </button>
+        </Button>
       </div>
 
       <header className="mt-6">
@@ -90,13 +97,16 @@ export default function PainelProfessor() {
               <tr>
                 <th className="px-4 py-3 font-medium">Runner</th>
                 <th className="px-4 py-3 font-medium">Progresso</th>
+                <th className="px-4 py-3 font-medium">Onde travou</th>
                 <th className="px-4 py-3 font-medium">XP</th>
+                <th className="px-4 py-3 font-medium">Servidor</th>
+                <th className="px-4 py-3 font-medium">PvP</th>
                 <th className="px-4 py-3 font-medium">Última atividade</th>
               </tr>
             </thead>
             <tbody>
               {alunos.map((a) => {
-                const pct = Math.round((a.fases_concluidas / totalFases) * 100);
+                const pct = totalFases > 0 ? Math.round((a.fasesConcluidas / totalFases) * 100) : 0;
                 return (
                   <tr key={a.id} className="border-t border-borda">
                     <td className="px-4 py-3">
@@ -112,17 +122,28 @@ export default function PainelProfessor() {
                           />
                         </div>
                         <span className="text-xs text-texto-suave">
-                          {a.fases_concluidas}/{totalFases}
+                          {a.fasesConcluidas}/{totalFases}
                         </span>
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-texto-suave">
+                      {a.proximaFasePendente ? `Contrato ${a.proximaFasePendente}` : "Concluiu tudo 🏆"}
+                    </td>
                     <td className="px-4 py-3 text-ouro">
-                      {a.xp_total}
+                      {a.xpTotal}
                       <span className="text-texto-suave">/{XP_TOTAL}</span>
                     </td>
+                    <td className="px-4 py-3 text-texto-suave capitalize">
+                      {a.servidorTier ?? "—"}
+                    </td>
                     <td className="px-4 py-3 text-texto-suave">
-                      {a.ultima_atividade
-                        ? new Date(a.ultima_atividade).toLocaleString("pt-BR")
+                      <span className="text-sucesso">{a.vitorias}V</span>
+                      {" / "}
+                      <span className="text-erro">{a.derrotas}D</span>
+                    </td>
+                    <td className="px-4 py-3 text-texto-suave">
+                      {a.ultimaAtividade
+                        ? new Date(a.ultimaAtividade).toLocaleString("pt-BR")
                         : "—"}
                     </td>
                   </tr>

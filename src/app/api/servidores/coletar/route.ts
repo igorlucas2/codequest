@@ -32,9 +32,21 @@ export async function POST() {
     const custoInternet = internetAtiva ? CUSTO_INTERNET_MENSAL : 0;
     const liquido = Math.max(0, bruto - custoInternet);
 
-    if (bruto > 0) {
+    // Só credita E zera o relógio quando sobra algo líquido — se o bruto
+    // não cobre nem o aluguel, zerar mesmo assim faria o jogador perder o
+    // acúmulo parcial sem receber nada em troca (uma armadilha permanente,
+    // já que não existe endpoint pra cancelar a internet). Deixa continuar
+    // acumulando até valer a pena coletar.
+    if (liquido > 0) {
       await conn.query("UPDATE usuarios SET moedas = moedas + ? WHERE id = ?", [liquido, u.id]);
       await conn.query("UPDATE apps_instalados SET ultima_coleta = NOW() WHERE usuario_id = ?", [u.id]);
+      // Contador cumulativo de moedas de fato coletadas (nunca decresce) —
+      // usado pelo Ranking pra medir receita real em vez de potencial
+      // instalado (ver api/ranking/route.ts).
+      await conn.query(
+        "UPDATE servidores SET total_coletado = total_coletado + ? WHERE usuario_id = ?",
+        [liquido, u.id],
+      );
     }
 
     await conn.commit();

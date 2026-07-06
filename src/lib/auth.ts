@@ -24,8 +24,12 @@ export async function hashSenha(senha: string) {
   return bcrypt.hash(senha, 10);
 }
 
-export async function conferirSenha(senha: string, hash: string) {
-  return bcrypt.compare(senha, hash);
+// Hash de decoy: usado quando o e-mail não existe, pra que o tempo de
+// resposta não denuncie (via bcrypt pulado) se a conta existe ou não.
+const HASH_DECOY = bcrypt.hashSync("nenhum-usuario-tem-esta-senha", 10);
+
+export async function conferirSenha(senha: string, hash?: string) {
+  return bcrypt.compare(senha, hash ?? HASH_DECOY);
 }
 
 // Cria a sessão: assina um JWT com o id do usuário e grava num cookie httpOnly.

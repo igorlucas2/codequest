@@ -124,7 +124,7 @@ export default function Ranking() {
                       </>
                     ) : (
                       <>
-                        {l.receita} <span className="text-xs font-normal text-texto-suave">cr/h</span>
+                        {l.receita} <span className="text-xs font-normal text-texto-suave">cr coletados</span>
                       </>
                     )}
                   </span>

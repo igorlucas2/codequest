@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS batalhas (
   moedas_premio INT NOT NULL DEFAULT 0,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   KEY idx_desafiante (desafiante_id),
+  KEY idx_vencedor (vencedor_id),
   FOREIGN KEY (desafiante_id) REFERENCES usuarios(id) ON DELETE CASCADE,
   FOREIGN KEY (oponente_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -96,6 +97,7 @@ CREATE TABLE IF NOT EXISTS servidores (
   switch_tier VARCHAR(30) NULL,
   internet_ativa TINYINT(1) NOT NULL DEFAULT 0,
   layout_equipamentos JSON NULL,
+  total_coletado INT NOT NULL DEFAULT 0,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -151,6 +153,8 @@ const MIGRACOES = [
   "ALTER TABLE servidores ADD COLUMN switch_tier VARCHAR(30) NULL",
   "ALTER TABLE servidores ADD COLUMN internet_ativa TINYINT(1) NOT NULL DEFAULT 0",
   "ALTER TABLE servidores ADD COLUMN layout_equipamentos JSON NULL",
+  "ALTER TABLE servidores ADD COLUMN total_coletado INT NOT NULL DEFAULT 0",
+  "ALTER TABLE batalhas ADD KEY idx_vencedor (vencedor_id)",
   // Quem já tinha rede configurada antes da internet virar pré-requisito não
   // pode perder alcance de rede silenciosamente — considera "já contratada".
   "UPDATE servidores SET internet_ativa = 1 WHERE rede_configurada = 1 AND internet_ativa = 0",
@@ -170,7 +174,7 @@ async function migrar(conn) {
       await conn.query(sql);
       console.log("Migração aplicada:", sql.slice(0, 48) + "...");
     } catch (e) {
-      if (e.code === "ER_DUP_FIELDNAME") continue; // coluna já existe: ok
+      if (e.code === "ER_DUP_FIELDNAME" || e.code === "ER_DUP_KEYNAME") continue; // coluna/índice já existe: ok
       throw e;
     }
   }

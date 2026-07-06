@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { pool } from "@/lib/db";
+import { transacao, SaidaTransacao } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { getSwitchTier } from "@/content/switches";
-import { garantirServidor, carregarInfraServidor } from "@/lib/servidores";
+import { garantirServidor, carregarInfraServidorParaAtualizar } from "@/lib/servidores";
 
 // Compra (ou troca) o switch — mesmo padrão de "formatar e reinstalar" do
 // sistema operacional: um switch só, substitui o anterior. Não permite trocar
@@ -16,39 +16,42 @@ export async function POST(req: Request) {
   if (!sw) return NextResponse.json({ erro: "Switch inválido." }, { status: 400 });
 
   await garantirServidor(u.id);
-  const { servidoresExtras, switchTier } = await carregarInfraServidor(u.id);
-  if (switchTier === sw.id) {
-    return NextResponse.json({ erro: "Esse switch já está instalado." }, { status: 409 });
-  }
 
-  const numeroTotal = 1 + servidoresExtras;
-  if (numeroTotal > 1 && sw.portas < numeroTotal) {
-    return NextResponse.json(
-      { erro: `Esse switch só tem ${sw.portas} portas — insuficiente pros seus ${numeroTotal} servidores.` },
-      { status: 409 },
-    );
-  }
-
-  const conn = await pool.getConnection();
   try {
-    await conn.beginTransaction();
+    return await transacao(async (conn) => {
+      // Trava a linha do servidor antes de checar "já tem esse switch?" e
+      // portas — sem isso, duas trocas simultâneas de switch podiam
+      // debitar moedas duas vezes e persistir só uma (last-write-wins).
+      const { servidoresExtras, switchTier } = await carregarInfraServidorParaAtualizar(conn, u.id);
+      if (switchTier === sw.id) {
+        throw new SaidaTransacao(
+          NextResponse.json({ erro: "Esse switch já está instalado." }, { status: 409 }),
+        );
+      }
 
-    const [linhas] = await conn.query("SELECT moedas FROM usuarios WHERE id = ? FOR UPDATE", [u.id]);
-    const moedas = (linhas as { moedas: number }[])[0]?.moedas ?? 0;
-    if (moedas < sw.preco) {
-      await conn.rollback();
-      return NextResponse.json({ erro: "Moedas insuficientes." }, { status: 402 });
-    }
+      const numeroTotal = 1 + servidoresExtras;
+      if (numeroTotal > 1 && sw.portas < numeroTotal) {
+        throw new SaidaTransacao(
+          NextResponse.json(
+            { erro: `Esse switch só tem ${sw.portas} portas — insuficiente pros seus ${numeroTotal} servidores.` },
+            { status: 409 },
+          ),
+        );
+      }
 
-    await conn.query("UPDATE usuarios SET moedas = moedas - ? WHERE id = ?", [sw.preco, u.id]);
-    await conn.query("UPDATE servidores SET switch_tier = ? WHERE usuario_id = ?", [sw.id, u.id]);
+      const [linhas] = await conn.query("SELECT moedas FROM usuarios WHERE id = ? FOR UPDATE", [u.id]);
+      const moedas = (linhas as { moedas: number }[])[0]?.moedas ?? 0;
+      if (moedas < sw.preco) {
+        throw new SaidaTransacao(NextResponse.json({ erro: "Moedas insuficientes." }, { status: 402 }));
+      }
 
-    await conn.commit();
-    return NextResponse.json({ ok: true, switchTier: sw.id, moedas: moedas - sw.preco });
+      await conn.query("UPDATE usuarios SET moedas = moedas - ? WHERE id = ?", [sw.preco, u.id]);
+      await conn.query("UPDATE servidores SET switch_tier = ? WHERE usuario_id = ?", [sw.id, u.id]);
+
+      return NextResponse.json({ ok: true, switchTier: sw.id, moedas: moedas - sw.preco });
+    });
   } catch (e) {
-    await conn.rollback();
+    if (e instanceof SaidaTransacao) return e.resposta;
     throw e;
-  } finally {
-    conn.release();
   }
 }

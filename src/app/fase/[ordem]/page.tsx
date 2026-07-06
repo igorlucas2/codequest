@@ -106,7 +106,7 @@ export default function PaginaFase() {
           <Desafio
             fase={fase}
             jaConcluida={jaConcluida}
-            onAcerto={() => concluirFase(fase.ordem)}
+            onAcerto={(envio) => concluirFase(fase.ordem, envio)}
           />
         </div>
       </div>

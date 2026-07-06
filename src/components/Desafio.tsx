@@ -1,14 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { moedasDaFase, type Fase } from "@/content/trilha1";
 import { type LinhaTerminal } from "@/components/Terminal";
 import EditorCodigo from "@/components/EditorCodigo";
 import MonitorFrame from "@/components/MonitorFrame";
-import { normalizar } from "@/lib/texto";
+import Button from "@/components/ui/Button";
+import type { EnvioDesafio, ResultadoValidacao } from "@/lib/tiposTrilha";
 
-type Estado = "respondendo" | "certo" | "errado";
+type Estado = "respondendo" | "verificando" | "certo" | "errado";
 
+// Nenhuma comparação de resposta acontece aqui — só no servidor
+// (api/trilha/validar e api/progresso), que tem o gabarito de verdade (ver
+// trilha1Gabarito.ts). Este componente só monta o envio (escolha/texto/
+// buffer do editor) e mostra o que o servidor respondeu.
 export default function Desafio({
   fase,
   jaConcluida,
@@ -16,7 +21,7 @@ export default function Desafio({
 }: {
   fase: Fase;
   jaConcluida: boolean;
-  onAcerto: () => void;
+  onAcerto: (envio: EnvioDesafio) => Promise<{ ok: boolean; erro?: string }>;
 }) {
   const { desafio } = fase;
   const [estado, setEstado] = useState<Estado>("respondendo");
@@ -28,72 +33,92 @@ export default function Desafio({
   // Estado do editor de código (usado pelos tipos "terminal" e "teste_final").
   const [codigoEditor, setCodigoEditor] = useState("");
   const [saidaEditor, setSaidaEditor] = useState<LinhaTerminal[]>([]);
-  // Índice (na lista de linhas do editor) da última linha do teste_final já
-  // aceita — cada passo só pode ser confirmado por uma linha que vem DEPOIS
-  // dela, já que o script cresce no mesmo buffer entre os passos.
-  const ultimoIndiceRef = useRef(-1);
 
-  function validar() {
-    let acertou = false;
-    if (desafio.tipo === "multipla") {
-      acertou = escolha === desafio.correta;
-    } else if (desafio.tipo === "lacuna") {
-      acertou = normalizar(texto) === normalizar(desafio.resposta);
+  async function validarNoServidor(envio: EnvioDesafio): Promise<ResultadoValidacao | null> {
+    try {
+      const r = await fetch("/api/trilha/validar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fase_ordem: fase.ordem, envio }),
+      });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch {
+      return null;
     }
+  }
+
+  async function validar() {
+    if (desafio.tipo !== "multipla" && desafio.tipo !== "lacuna") return;
+    setEstado("verificando");
+    const envio: EnvioDesafio =
+      desafio.tipo === "multipla"
+        ? { tipo: "multipla", escolha: escolha ?? -1 }
+        : { tipo: "lacuna", texto };
+    const resultado = await validarNoServidor(envio);
+    const acertou = resultado?.tipo === "binario" && resultado.correto;
     if (acertou) {
       setEstado("certo");
-      if (!jaConcluida) onAcerto();
+      if (!jaConcluida) await onAcerto(envio);
     } else {
       setEstado("errado");
     }
   }
 
-  function rodarTerminal() {
+  async function rodarTerminal() {
     if (desafio.tipo !== "terminal") return;
-    const linhas = codigoEditor.split("\n").map(normalizar);
-    if (linhas.includes(normalizar(desafio.resposta))) {
+    setEstado("verificando");
+    const envio: EnvioDesafio = { tipo: "terminal", codigo: codigoEditor };
+    const resultado = await validarNoServidor(envio);
+    const acertou = resultado?.tipo === "binario" && resultado.correto;
+    if (acertou) {
       setEstado("certo");
-      if (!jaConcluida) onAcerto();
       setSaidaEditor(desafio.saida.map((texto) => ({ texto, tipo: "sucesso" })));
+      if (!jaConcluida) await onAcerto(envio);
     } else {
+      setEstado("respondendo");
       setSaidaEditor([
         { texto: "Comando não reconhecido ou incorreto. Confira as linhas do seu código.", tipo: "erro" },
       ]);
     }
   }
 
-  function rodarTesteFinal() {
+  async function rodarTesteFinal() {
     if (desafio.tipo !== "teste_final") return;
-    const passo = desafio.passos[passoAtual];
-    const linhas = codigoEditor.split("\n").map(normalizar);
+    setEstado("verificando");
+    const envio: EnvioDesafio = { tipo: "teste_final", codigo: codigoEditor };
+    const resultado = await validarNoServidor(envio);
 
-    let encontrado = -1;
-    for (let i = ultimoIndiceRef.current + 1; i < linhas.length; i++) {
-      if (linhas[i] === normalizar(passo.resposta)) {
-        encontrado = i;
-        break;
-      }
+    if (!resultado || resultado.tipo !== "progressivo") {
+      setEstado("respondendo");
+      setSaidaEditor([{ texto: "Falha ao validar com o servidor. Tente de novo.", tipo: "erro" }]);
+      return;
     }
 
-    if (encontrado === -1) {
+    const { passosCorretos, totalPassos } = resultado;
+    if (passosCorretos <= passoAtual) {
+      setEstado("respondendo");
       setSaidaEditor([
         { texto: "Comando rejeitado pelo ICE. Verifique se a linha vem depois do que já foi aceito.", tipo: "erro" },
       ]);
       return;
     }
 
-    ultimoIndiceRef.current = encontrado;
-    setSaidaEditor(passo.saida.map((texto) => ({ texto, tipo: "sucesso" })));
-    if (passoAtual >= desafio.passos.length - 1) {
+    const passoAlcancado = desafio.passos[Math.min(passosCorretos, desafio.passos.length) - 1];
+    setSaidaEditor(passoAlcancado.saida.map((texto) => ({ texto, tipo: "sucesso" })));
+
+    if (passosCorretos >= totalPassos) {
       setEstado("certo");
-      if (!jaConcluida) onAcerto();
+      if (!jaConcluida) await onAcerto(envio);
     } else {
-      setPassoAtual((p) => p + 1);
+      setEstado("respondendo");
+      setPassoAtual(passosCorretos);
     }
   }
 
+  const bloqueado = estado === "certo" || estado === "verificando";
   const podeValidar =
-    desafio.tipo === "multipla" ? escolha !== null : texto.trim().length > 0;
+    !bloqueado && (desafio.tipo === "multipla" ? escolha !== null : texto.trim().length > 0);
 
   return (
     <div className="rounded-2xl border border-borda bg-fundo-card p-5">
@@ -108,7 +133,7 @@ export default function Desafio({
             return (
               <button
                 key={i}
-                disabled={estado === "certo"}
+                disabled={bloqueado}
                 onClick={() => {
                   setEscolha(i);
                   setEstado("respondendo");
@@ -134,13 +159,13 @@ export default function Desafio({
               <input
                 key="lacuna"
                 value={texto}
-                disabled={estado === "certo"}
+                disabled={bloqueado}
                 onChange={(e) => {
                   setTexto(e.target.value);
                   setEstado("respondendo");
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && podeValidar) validar();
+                  if (e.key === "Enter" && podeValidar) void validar();
                 }}
                 placeholder="?"
                 className="codigo mx-1 w-24 rounded border border-primaria bg-fundo px-2 py-0.5 text-destaque outline-none focus:border-destaque"
@@ -157,9 +182,9 @@ export default function Desafio({
             <EditorCodigo
               valor={codigoEditor}
               aoMudarValor={setCodigoEditor}
-              desabilitado={estado === "certo"}
+              desabilitado={bloqueado}
               saida={saidaEditor}
-              aoRodar={rodarTerminal}
+              aoRodar={() => void rodarTerminal()}
             />
           </MonitorFrame>
         </div>
@@ -178,9 +203,9 @@ export default function Desafio({
             <EditorCodigo
               valor={codigoEditor}
               aoMudarValor={setCodigoEditor}
-              desabilitado={estado === "certo"}
+              desabilitado={bloqueado}
               saida={saidaEditor}
-              aoRodar={rodarTesteFinal}
+              aoRodar={() => void rodarTesteFinal()}
               arquivo="exploit.py"
             />
           </MonitorFrame>
@@ -202,13 +227,13 @@ export default function Desafio({
       {/* Ações */}
       <div className="mt-4 flex items-center gap-3">
         {desafio.tipo !== "terminal" && desafio.tipo !== "teste_final" && estado !== "certo" && (
-          <button
-            onClick={validar}
+          <Button
+            onClick={() => void validar()}
             disabled={!podeValidar}
-            className="rounded-xl bg-primaria px-6 py-2.5 font-semibold text-white transition hover:bg-primaria-forte disabled:opacity-40"
+            carregando={estado === "verificando"}
           >
             Executar
-          </button>
+          </Button>
         )}
         {desafio.dica && estado !== "certo" && (
           <button

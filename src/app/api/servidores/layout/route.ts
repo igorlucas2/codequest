@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { executar } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
-import { garantirServidor } from "@/lib/servidores";
+import { garantirServidor, carregarInfraServidor } from "@/lib/servidores";
 
 const CANVAS_LARGURA = 560;
 const CANVAS_ALTURA = 360;
@@ -45,13 +45,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "Layout inválido." }, { status: 400 });
   }
 
+  await garantirServidor(u.id);
+  // Nunca salva mais pontos de rack do que a frota real do usuário — sem
+  // isso, o array aceitava qualquer tamanho vindo do cliente.
+  const { servidoresExtras } = await carregarInfraServidor(u.id);
+  const maxServidores = 1 + servidoresExtras;
+
   const layout = {
     internet: grampear(corpo.internet),
     switch: corpo.switch ? grampear(corpo.switch) : null,
-    servidores: (corpo.servidores as Ponto[]).map(grampear),
+    servidores: (corpo.servidores as Ponto[]).slice(0, maxServidores).map(grampear),
   };
 
-  await garantirServidor(u.id);
   await executar("UPDATE servidores SET layout_equipamentos = ? WHERE usuario_id = ?", [
     JSON.stringify(layout),
     u.id,

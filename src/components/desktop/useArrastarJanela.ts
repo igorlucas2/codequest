@@ -12,6 +12,7 @@ import { animate } from "framer-motion";
 export function useArrastarJanela(
   x: number,
   y: number,
+  yMaximo: number,
   aoMover: (x: number, y: number) => void,
 ) {
   const offset = useRef<{ dx: number; dy: number } | null>(null);
@@ -40,7 +41,7 @@ export function useArrastarJanela(
   function onPointerMove(e: ReactPointerEvent<HTMLElement>) {
     if (!offset.current) return;
     const novoX = Math.max(0, e.clientX - offset.current.dx);
-    const novoY = Math.max(0, e.clientY - offset.current.dy);
+    const novoY = Math.max(0, Math.min(yMaximo, e.clientY - offset.current.dy));
 
     const agora = performance.now();
     if (ultimoMovimento.current) {
@@ -85,7 +86,7 @@ export function useArrastarJanela(
       velocity: vy * 1000,
       stiffness: 260,
       damping: 26,
-      onUpdate: (v) => aoMover(posicaoAtual.current.x, Math.max(0, v)),
+      onUpdate: (v) => aoMover(posicaoAtual.current.x, Math.max(0, Math.min(yMaximo, v))),
     });
     paradas.current = [controleX, controleY];
   }

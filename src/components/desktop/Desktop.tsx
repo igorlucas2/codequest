@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import "@/app/desktop.css";
 import { geracaoPorNotebook } from "@/content/geracoesPc";
 import IconeDesktop from "@/components/desktop/IconeDesktop";
@@ -13,6 +13,7 @@ import {
   ALTURA_MINIMA_JANELA,
 } from "@/components/desktop/limitesDesktop";
 import BootScreen from "@/components/desktop/BootScreen";
+import { lerLigadoSalvo, salvarLigado, lerEstadoSalvo, salvarEstado } from "@/components/desktop/persistenciaDesktop";
 import EsteComputador from "@/components/desktop/programas/EsteComputador";
 import LeiaMe from "@/components/desktop/programas/LeiaMe";
 import Lixeira from "@/components/desktop/programas/Lixeira";
@@ -106,7 +107,7 @@ type EstadoDesktop = {
   proximoZ: number;
 };
 
-type AcaoDesktop =
+export type AcaoDesktop =
   | { tipo: "abrir"; programaId: ProgramaId; payload?: unknown }
   | { tipo: "fechar"; id: string }
   | { tipo: "focar"; id: string }
@@ -117,6 +118,12 @@ type AcaoDesktop =
   | { tipo: "organizar"; larguraArea: number };
 
 const ESTADO_INICIAL: EstadoDesktop = { janelas: [], proximoZ: 10 };
+
+function ehEstadoDesktopValido(v: unknown): v is EstadoDesktop {
+  if (typeof v !== "object" || v === null) return false;
+  const e = v as Record<string, unknown>;
+  return Array.isArray(e.janelas) && typeof e.proximoZ === "number";
+}
 
 // Cada ação nasce de um evento discreto do usuário (clicar num ícone, na
 // taskbar, arrastar) — sem efeitos escondidos, fácil de seguir o estado.
@@ -240,9 +247,16 @@ export default function Desktop({
   velocidade: number;
 }) {
   const geracao = geracaoPorNotebook(equipados);
-  const [ligado, setLigado] = useState(false);
-  const [estado, dispatch] = useReducer(reduzirDesktop, ESTADO_INICIAL);
+  const [ligado, setLigado] = useState(lerLigadoSalvo);
+  const [estado, dispatch] = useReducer(
+    reduzirDesktop,
+    ESTADO_INICIAL,
+    (inicial) => lerEstadoSalvo(ehEstadoDesktopValido) ?? inicial,
+  );
   const desktopRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => salvarLigado(ligado), [ligado]);
+  useEffect(() => salvarEstado(estado), [estado]);
 
   if (!ligado) {
     return <BootScreen geracao={geracao} velocidade={velocidade} aoConcluir={() => setLigado(true)} />;
@@ -268,19 +282,7 @@ export default function Desktop({
       </div>
 
       {estado.janelas.map((j) => (
-        <Janela
-          key={j.id}
-          janela={j}
-          geracao={geracao}
-          ativa={j.id === janelaAtiva}
-          onFechar={() => dispatch({ tipo: "fechar", id: j.id })}
-          onFocar={() => dispatch({ tipo: "focar", id: j.id })}
-          onMinimizar={() => dispatch({ tipo: "minimizar", id: j.id })}
-          onMover={(x, y) => dispatch({ tipo: "mover", id: j.id, x, y })}
-          onRedimensionar={(largura, altura) =>
-            dispatch({ tipo: "redimensionar", id: j.id, largura, altura })
-          }
-        >
+        <Janela key={j.id} janela={j} geracao={geracao} ativa={j.id === janelaAtiva} dispatch={dispatch}>
           {j.id === "computador" && <EsteComputador geracao={geracao} />}
           {j.id === "leiame" && <LeiaMe geracao={geracao} />}
           {j.id === "lixeira" && <Lixeira geracao={geracao} />}

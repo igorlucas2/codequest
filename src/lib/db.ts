@@ -10,7 +10,7 @@ declare global {
 }
 
 function criarPool() {
-  return mysql.createPool({
+  const pool = mysql.createPool({
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || "root",
@@ -18,8 +18,21 @@ function criarPool() {
     database: process.env.DB_NAME || "codequest",
     waitForConnections: true,
     connectionLimit: 10,
+    queueLimit: 30,
+    connectTimeout: 10_000,
     charset: "utf8mb4",
   });
+  // Sem isso, um erro assíncrono do pool (ex: MySQL caiu) vira um
+  // unhandledRejection e derruba o processo Node inteiro. O .d.ts do
+  // mysql2/promise só tipa 'connection'/'acquire'/'release'/'enqueue' pro
+  // Pool (não inclui 'error', que ele emite em runtime via EventEmitter).
+  (pool as unknown as { on: (evento: "error", cb: (erro: Error) => void) => void }).on(
+    "error",
+    (err) => {
+      console.error("Erro no pool do MySQL:", err);
+    },
+  );
+  return pool;
 }
 
 export const pool = global._mysqlPool ?? criarPool();
@@ -41,4 +54,34 @@ export async function executar(
 ): Promise<mysql.ResultSetHeader> {
   const [res] = await pool.query(sql, params);
   return res as mysql.ResultSetHeader;
+}
+
+// Uma rota que precisa sair de dentro de uma transação com uma resposta de
+// negócio (ex: "saldo insuficiente", 409/402/400) sem tratar isso como erro
+// de servidor lança SaidaTransacao(resposta) — transacao() garante o
+// rollback antes de propagar, e o chamador captura especificamente essa
+// classe pra devolver a resposta pretendida.
+export class SaidaTransacao extends Error {
+  constructor(public resposta: Response) {
+    super("saida-controlada-de-transacao");
+  }
+}
+
+// Consolida o boilerplate de beginTransaction/commit/rollback/release que
+// antes se repetia, idêntico, em cada rota que precisava de transação.
+export async function transacao<T>(
+  fn: (conn: mysql.PoolConnection) => Promise<T>,
+): Promise<T> {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const resultado = await fn(conn);
+    await conn.commit();
+    return resultado;
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
 }

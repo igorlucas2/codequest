@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { pool } from "@/lib/db";
+import { transacao, SaidaTransacao } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { getSistemaOperacional } from "@/content/sistemasOperacionais";
-import { garantirServidor, carregarStatusSistema } from "@/lib/servidores";
+import { garantirServidor } from "@/lib/servidores";
 
 // Instala (compra) um sistema operacional no servidor: valida saldo no
 // servidor, nunca no cliente — mesmo padrão transacional de upgrade/comprar.
@@ -16,35 +16,41 @@ export async function POST(req: Request) {
   if (!so) return NextResponse.json({ erro: "Sistema operacional inválido." }, { status: 400 });
 
   await garantirServidor(u.id);
-  const { sistemaOperacional: atual } = await carregarStatusSistema(u.id);
-  if (atual === so.id)
-    return NextResponse.json({ erro: "Esse sistema operacional já está instalado." }, { status: 409 });
 
-  const conn = await pool.getConnection();
   try {
-    await conn.beginTransaction();
+    return await transacao(async (conn) => {
+      // Trava a linha do servidor antes de checar "já instalado?" — sem
+      // isso, um duplo clique trocando pra dois SOs diferentes podia
+      // debitar moedas duas vezes e persistir só um (last-write-wins).
+      const [linhaServidor] = await conn.query(
+        "SELECT sistema_operacional FROM servidores WHERE usuario_id = ? FOR UPDATE",
+        [u.id],
+      );
+      const atual = (linhaServidor as { sistema_operacional: string | null }[])[0]?.sistema_operacional ?? null;
+      if (atual === so.id) {
+        throw new SaidaTransacao(
+          NextResponse.json({ erro: "Esse sistema operacional já está instalado." }, { status: 409 }),
+        );
+      }
 
-    const [linhas] = await conn.query("SELECT moedas FROM usuarios WHERE id = ? FOR UPDATE", [u.id]);
-    const moedas = (linhas as { moedas: number }[])[0]?.moedas ?? 0;
-    if (moedas < so.preco) {
-      await conn.rollback();
-      return NextResponse.json({ erro: "Moedas insuficientes." }, { status: 402 });
-    }
+      const [linhas] = await conn.query("SELECT moedas FROM usuarios WHERE id = ? FOR UPDATE", [u.id]);
+      const moedas = (linhas as { moedas: number }[])[0]?.moedas ?? 0;
+      if (moedas < so.preco) {
+        throw new SaidaTransacao(NextResponse.json({ erro: "Moedas insuficientes." }, { status: 402 }));
+      }
 
-    await conn.query("UPDATE usuarios SET moedas = moedas - ? WHERE id = ?", [so.preco, u.id]);
-    // Reinstalação = SO novo, serviço sshd ainda não ligado (mesmo que o SO
-    // anterior já tivesse sido habilitado) — precisa habilitar de novo.
-    await conn.query(
-      "UPDATE servidores SET sistema_operacional = ?, ssh_habilitado = 0 WHERE usuario_id = ?",
-      [so.id, u.id],
-    );
+      await conn.query("UPDATE usuarios SET moedas = moedas - ? WHERE id = ?", [so.preco, u.id]);
+      // Reinstalação = SO novo, serviço sshd ainda não ligado (mesmo que o SO
+      // anterior já tivesse sido habilitado) — precisa habilitar de novo.
+      await conn.query(
+        "UPDATE servidores SET sistema_operacional = ?, ssh_habilitado = 0 WHERE usuario_id = ?",
+        [so.id, u.id],
+      );
 
-    await conn.commit();
-    return NextResponse.json({ ok: true, sistemaOperacional: so.id, moedas: moedas - so.preco });
+      return NextResponse.json({ ok: true, sistemaOperacional: so.id, moedas: moedas - so.preco });
+    });
   } catch (e) {
-    await conn.rollback();
+    if (e instanceof SaidaTransacao) return e.resposta;
     throw e;
-  } finally {
-    conn.release();
   }
 }

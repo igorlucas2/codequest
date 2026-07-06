@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { pool, consultar } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
+import { limiteExcedido } from "@/lib/rateLimit";
 
 // Senha do núcleo do minigame de invasão (fica só no servidor: o cliente não
 // deve conseguir ler a resposta lendo o bundle de JS).
@@ -20,6 +21,15 @@ export async function POST(req: Request) {
   const { senha } = await req.json().catch(() => ({}));
   if (typeof senha !== "string" || !senha.trim())
     return NextResponse.json({ erro: "Senha inválida." }, { status: 400 });
+
+  // A recompensa já tem cooldown diário, mas nada impedia tentar adivinhar a
+  // senha em loop — sem prêmio em jogo, mas ainda um scan de força bruta.
+  if (limiteExcedido(`invasao:${u.id}`, 20, 5 * 60 * 1000)) {
+    return NextResponse.json(
+      { erro: "Muitas tentativas. Aguarde alguns minutos e tente de novo." },
+      { status: 429 },
+    );
+  }
 
   const correta = normalizar(senha) === SENHA_NUCLEO;
   if (!correta) {

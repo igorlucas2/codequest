@@ -10,6 +10,8 @@ import {
 import { FASES } from "@/content/trilha1";
 import { FICHA_PADRAO, type Ficha } from "@/content/classes";
 import { calcularStats, type Stats } from "@/lib/stats";
+import { limparEstadoDesktopPersistido } from "@/components/desktop/persistenciaDesktop";
+import type { EnvioDesafio } from "@/lib/tiposTrilha";
 
 export type Usuario = {
   id: number;
@@ -35,7 +37,7 @@ type Contexto = {
   totalFases: number;
   tourVisto: boolean;
   recarregar: () => Promise<void>;
-  concluirFase: (ordem: number) => Promise<void>;
+  concluirFase: (ordem: number, envio: EnvioDesafio) => Promise<{ ok: boolean; erro?: string }>;
   faseConcluida: (ordem: number) => boolean;
   faseDesbloqueada: (ordem: number) => boolean;
   temItem: (itemId: string) => boolean;
@@ -86,13 +88,15 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   }, [recarregar]);
 
   const concluirFase = useCallback(
-    async (ordem: number) => {
-      await fetch("/api/progresso", {
+    async (ordem: number, envio: EnvioDesafio) => {
+      const res = await fetch("/api/progresso", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fase_ordem: ordem }),
+        body: JSON.stringify({ fase_ordem: ordem, envio }),
       });
+      const d = await res.json().catch(() => ({}));
       await recarregar();
+      return { ok: res.ok, erro: d.erro as string | undefined };
     },
     [recarregar],
   );
@@ -144,6 +148,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   const sair = useCallback(async () => {
     await fetch("/api/sair", { method: "POST" });
     setUsuario(null);
+    limparEstadoDesktopPersistido();
   }, []);
 
   const faseConcluida = useCallback(

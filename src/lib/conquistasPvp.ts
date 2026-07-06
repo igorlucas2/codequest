@@ -13,21 +13,29 @@ export async function concederItemPorVitoria(usuarioId: number): Promise<Item | 
   );
   const totalVitorias = (linhas as { n: number }[])[0]?.n ?? 0;
 
-  const marco = MARCOS_VITORIA_PVP.find((m) => m.vitorias === totalVitorias);
-  if (!marco) return null;
-
-  const item = getItem(marco.itemId);
-  if (!item) return null;
-
-  const [jaTem] = await pool.query(
-    "SELECT id FROM inventario WHERE usuario_id = ? AND item_id = ? LIMIT 1",
-    [usuarioId, item.id],
+  // "<=" (não "===") e sempre o primeiro marco ainda não concedido: se o
+  // contador pular um marco exato por qualquer motivo (ex: duas vitórias
+  // creditadas ao mesmo tempo), o item continua alcançável depois — com
+  // igualdade exata ele ficaria inacessível pra sempre.
+  const elegiveis = MARCOS_VITORIA_PVP.filter((m) => m.vitorias <= totalVitorias).sort(
+    (a, b) => a.vitorias - b.vitorias,
   );
-  if ((jaTem as unknown[]).length > 0) return null;
 
-  await pool.query(
-    "INSERT INTO inventario (usuario_id, item_id, equipado) VALUES (?, ?, 0)",
-    [usuarioId, item.id],
-  );
-  return item;
+  for (const marco of elegiveis) {
+    const item = getItem(marco.itemId);
+    if (!item) continue;
+
+    const [jaTem] = await pool.query(
+      "SELECT id FROM inventario WHERE usuario_id = ? AND item_id = ? LIMIT 1",
+      [usuarioId, item.id],
+    );
+    if ((jaTem as unknown[]).length > 0) continue;
+
+    await pool.query(
+      "INSERT INTO inventario (usuario_id, item_id, equipado) VALUES (?, ?, 0)",
+      [usuarioId, item.id],
+    );
+    return item;
+  }
+  return null;
 }

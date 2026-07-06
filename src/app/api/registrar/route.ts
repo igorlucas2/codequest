@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { consultar, executar } from "@/lib/db";
 import { hashSenha, criarSessao } from "@/lib/auth";
+import { limiteExcedido, identificarCliente } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   const { nome, email, senha, codigoProfessor } = await req.json().catch(() => ({}));
@@ -19,7 +20,23 @@ export async function POST(req: Request) {
       { status: 400 },
     );
 
-  // Já existe?
+  // O código de professor é a única porta pro papel privilegiado, e o
+  // e-mail aqui é escolhido livremente pelo próprio requisitante (e-mails
+  // descartáveis) — sem isso, dava pra adivinhar o código por força bruta
+  // registrando contas em loop. Só conta tentativa quando um código foi de
+  // fato enviado, então o cadastro normal de aluno nunca é afetado.
+  if (codigoProfessor) {
+    const chaveLimite = `codigo-professor:${identificarCliente(req)}`;
+    if (limiteExcedido(chaveLimite, 5, 15 * 60 * 1000)) {
+      return NextResponse.json(
+        { erro: "Muitas tentativas. Aguarde alguns minutos e tente de novo." },
+        { status: 429 },
+      );
+    }
+  }
+
+  // Já existe? (checagem rápida pra mensagem amigável — a garantia real
+  // contra corrida é o UNIQUE de email + o catch do ER_DUP_ENTRY abaixo.)
   const existe = await consultar("SELECT id FROM usuarios WHERE email = ? LIMIT 1", [
     emailLimpo,
   ]);
@@ -35,10 +52,21 @@ export async function POST(req: Request) {
       : "aluno";
 
   const hash = await hashSenha(senhaStr);
-  const res = await executar(
-    "INSERT INTO usuarios (nome, email, senha_hash, papel) VALUES (?, ?, ?, ?)",
-    [nomeLimpo, emailLimpo, hash, papel],
-  );
+  let res;
+  try {
+    res = await executar(
+      "INSERT INTO usuarios (nome, email, senha_hash, papel) VALUES (?, ?, ?, ?)",
+      [nomeLimpo, emailLimpo, hash, papel],
+    );
+  } catch (e) {
+    if ((e as { code?: string }).code === "ER_DUP_ENTRY") {
+      return NextResponse.json(
+        { erro: "Esse e-mail já tem conta. Faça login." },
+        { status: 409 },
+      );
+    }
+    throw e;
+  }
 
   await criarSessao(res.insertId);
   return NextResponse.json({

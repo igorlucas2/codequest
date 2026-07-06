@@ -2,12 +2,19 @@
 // Mantemos o conteúdo em arquivo (não no banco) nesta fase do MVP.
 // Cada contrato segue o molde único: história -> conceito -> exemplo -> desafio.
 
+// Nenhum tipo de desafio carrega o gabarito aqui — este arquivo é importado
+// por componentes "use client" (Desafio.tsx e afins), então qualquer campo
+// de resposta aqui iria parar no bundle JS do navegador, visível no painel
+// Sources do DevTools. O gabarito de verdade mora em trilha1Gabarito.ts,
+// marcado "server-only", e a validação roda inteiramente no servidor (ver
+// src/lib/validarTrilha.ts). Consulte trilha1Gabarito.ts se for alterar as
+// respostas — os dois arquivos precisam continuar em sincronia (mesma
+// ordem, mesmo número de passos no teste_final).
 export type Desafio =
   | {
       tipo: "multipla";
       enunciado: string;
       opcoes: string[];
-      correta: number; // índice da opção correta
       dica?: string;
     }
   | {
@@ -15,14 +22,12 @@ export type Desafio =
       enunciado: string;
       // Código com o marcador ___ onde entra a resposta.
       codigo: string;
-      resposta: string; // resposta esperada (comparação sem diferenciar maiúsc/minúsc e espaços)
       dica?: string;
     }
   | {
       tipo: "terminal";
       enunciado: string;
       prompt?: string; // prefixo do prompt do terminal (padrão ">>>")
-      resposta: string; // linha de comando esperada (mesma normalização da lacuna)
       saida: string[]; // linhas simuladas de saída exibidas ao acertar
       dica?: string;
     }
@@ -35,7 +40,6 @@ export type Desafio =
       prompt?: string;
       passos: {
         narrativa: string; // mostrado no terminal antes do comando deste passo
-        resposta: string;
         saida: string[]; // mostrado no terminal ao acertar este passo
       }[];
       dica?: string;
@@ -77,7 +81,6 @@ print("3. Baixar os dados")`,
       tipo: "terminal",
       enunciado: "Digite o comando que imprime a primeira etapa da rota de invasão.",
       prompt: ">>>",
-      resposta: 'print("1. Achar a porta de entrada")',
       saida: ["1. Achar a porta de entrada"],
       dica: 'Use print() com o texto entre aspas, igualzinho ao exemplo.',
     },
@@ -101,7 +104,6 @@ print(creditos)`,
       tipo: "terminal",
       enunciado: "Digite o comando completo que guarda o valor 100 numa variável chamada energia.",
       prompt: ">>>",
-      resposta: "energia = 100",
       saida: ["Variável 'energia' registrada no deck com valor 100."],
       dica: "nome_da_variável = valor",
     },
@@ -123,7 +125,6 @@ acesso_root = True      # booleano (bool)`,
       tipo: "terminal",
       enunciado: "Digite o comando que guarda True (booleano) numa variável chamada acesso_root.",
       prompt: ">>>",
-      resposta: "acesso_root = True",
       saida: ["acesso_root definido como booleano: True"],
       dica: "Booleano não tem aspas — é True ou False, com maiúscula.",
     },
@@ -149,7 +150,6 @@ else:
       enunciado:
         "Acesse o deck e digite o comando que verifica a condição 'tem_credencial' e libera o acesso.",
       prompt: ">>>",
-      resposta: "if tem_credencial:",
       saida: ["Acesso liberado!"],
       dica: "Começa com a palavra que verifica uma condição em Python, seguida da variável e dois-pontos.",
     },
@@ -170,7 +170,6 @@ else:
       tipo: "terminal",
       enunciado: "Digite o laço for que repete 4 vezes, usando range(4).",
       prompt: ">>>",
-      resposta: "for i in range(4):",
       saida: [
         "Nó de segurança 1 contornado!",
         "Nó de segurança 2 contornado!",
@@ -200,7 +199,6 @@ saudacao()`,
       enunciado:
         "Digite no deck o comando completo para definir uma função chamada executar_exploit.",
       prompt: ">>>",
-      resposta: "def executar_exploit():",
       saida: ["Exploit gravado no deck.", "Pronto para ser chamado quando precisar."],
       dica: "Vem de 'definir', seguido do nome da função com parênteses e dois-pontos.",
     },
@@ -230,17 +228,14 @@ else:
       passos: [
         {
           narrativa: "CAMADA 1: o ICE trava o acesso. Registre que você tem a credencial.",
-          resposta: "acesso = True",
           saida: ["Trava inicial contornada."],
         },
         {
           narrativa: "CAMADA 2: ele reforça a defesa. Verifique a condição antes de prosseguir.",
-          resposta: "if acesso:",
           saida: ["Condição validada. Avançando ao núcleo."],
         },
         {
           narrativa: "CAMADA 3: ele dispara 3 contra-ataques em sequência. Prepare-se para repeli-los.",
-          resposta: "for i in range(3):",
           saida: [
             "Contra-ataque 1 neutralizado.",
             "Contra-ataque 2 neutralizado.",
@@ -249,7 +244,6 @@ else:
         },
         {
           narrativa: "CAMADA FINAL: grave a função que derruba o ICE de vez.",
-          resposta: "def derrubar_ice():",
           saida: ["ICE DESATIVADO.", "🏆 Núcleo exposto. Contrato concluído!"],
         },
       ],

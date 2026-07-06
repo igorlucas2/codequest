@@ -1,5 +1,6 @@
 import "server-only";
 import { consultar, executar } from "@/lib/db";
+import type { PoolConnection } from "mysql2/promise";
 import { getServidorTier, type ServidorTierId } from "@/content/servidores";
 import { getApp } from "@/content/apps";
 import type { SistemaOperacionalId } from "@/content/sistemasOperacionais";
@@ -108,6 +109,55 @@ export async function carregarInfraServidor(usuarioId: number): Promise<{
     switchTier: l?.switch_tier ?? null,
     internetAtiva: l?.internet_ativa === 1,
   };
+}
+
+// Mesmas leituras de carregarInfraServidor/carregarStatusSistema, mas com
+// FOR UPDATE dentro de uma transação já aberta — usadas por rotas que
+// decidem uma regra de negócio (portas de switch, "já instalado?") a
+// partir desses valores antes de escrever. Sem travar aqui, duas
+// requisições concorrentes liam o mesmo estado "antigo" e ambas passavam
+// na checagem antes de qualquer uma escrever (a corrida que motivou
+// existir esta variante).
+export async function carregarInfraServidorParaAtualizar(
+  conn: PoolConnection,
+  usuarioId: number,
+): Promise<{
+  tier: ServidorTierId;
+  servidoresExtras: number;
+  switchTier: SwitchTierId | null;
+  internetAtiva: boolean;
+}> {
+  const [linhas] = await conn.query(
+    "SELECT tier, servidores_extras, switch_tier, internet_ativa FROM servidores WHERE usuario_id = ? FOR UPDATE",
+    [usuarioId],
+  );
+  const l = (linhas as {
+    tier: ServidorTierId;
+    servidores_extras: number;
+    switch_tier: SwitchTierId | null;
+    internet_ativa: number;
+  }[])[0];
+  return {
+    tier: l?.tier ?? "node",
+    servidoresExtras: l?.servidores_extras ?? 0,
+    switchTier: l?.switch_tier ?? null,
+    internetAtiva: l?.internet_ativa === 1,
+  };
+}
+
+export async function carregarAppsInstaladosParaAtualizar(
+  conn: PoolConnection,
+  usuarioId: number,
+): Promise<AppInstalado[]> {
+  const [linhas] = await conn.query(
+    "SELECT app_id, instalado_em, ultima_coleta FROM apps_instalados WHERE usuario_id = ? FOR UPDATE",
+    [usuarioId],
+  );
+  return (linhas as { app_id: string; instalado_em: Date; ultima_coleta: Date }[]).map((l) => ({
+    appId: l.app_id,
+    instaladoEm: l.instalado_em,
+    ultimaColeta: l.ultima_coleta,
+  }));
 }
 
 // Layout salvo da Sala de Equipamentos (posição de cada item, arrastado pelo

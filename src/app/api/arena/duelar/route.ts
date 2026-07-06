@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { executar } from "@/lib/db";
+import { executar, consultar } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { carregarCombatente } from "@/lib/personagem";
-import { gerarRodadas } from "@/lib/desafiosCombate";
+import { gerarRodadas } from "@/lib/rodadasCombate";
 import { carregarConfigRede, alcancaZona } from "@/lib/rede";
 import { carregarInfraServidor } from "@/lib/servidores";
 import { setorDoUsuario } from "@/content/rede";
+
+const MAX_DUELOS_PENDENTES = 3;
 
 // Propõe um duelo: gera as rodadas de digitação e guarda um snapshot dos
 // stats de ambos os lados em duelos_pendentes. Não decide nada ainda — o
@@ -37,6 +39,18 @@ export async function POST(req: Request) {
   // Faxina oportunista: sem cron por trás, então cada novo "Invadir" também
   // limpa propostas abandonadas (nunca confirmadas) de qualquer jogador.
   await executar("DELETE FROM duelos_pendentes WHERE criado_em < (NOW() - INTERVAL 3 MINUTE)");
+
+  // Sem isso, um script pode chamar "Invadir" em loop sem nunca confirmar,
+  // empilhando linhas indefinidamente (só limpas de forma oportunista acima).
+  const [{ n: pendentes }] = await consultar<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM duelos_pendentes WHERE desafiante_id = ?",
+    [u.id],
+  );
+  if (pendentes >= MAX_DUELOS_PENDENTES)
+    return NextResponse.json(
+      { erro: "Você já tem invasões pendentes demais. Conclua ou aguarde expirar antes de invadir de novo." },
+      { status: 429 },
+    );
 
   const resultado = await executar(
     `INSERT INTO duelos_pendentes
