@@ -1,0 +1,556 @@
+/* Estilos do desktop emulado (/invasao). Importado só dentro de Desktop.tsx,
+   não em globals.css, pra não pesar nas outras páginas.
+
+   Estrutura: classes base (.desktop, .janela, .taskbar, .icone-desktop,
+   .boot-screen) cuidam só de LAYOUT (posição, flex, tamanho) — todo o visual
+   (cor, borda, fonte, gradiente) mora nas classes de geração
+   (--win98 / --xp / --neon), escolhidas via a prop `geracao` de cada
+   componente. Isso evita que regra de uma geração vaze pra outra. */
+
+/* ===== Base (layout, sem cor) ===== */
+
+.desktop {
+  position: relative;
+  overflow: hidden;
+  height: 640px;
+  border-radius: 1rem;
+  border: 1px solid var(--color-borda);
+}
+
+.desktop-icones {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.icone-desktop {
+  display: flex;
+  width: 76px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+.icone-desktop-emoji {
+  font-size: 1.75rem;
+}
+.icone-desktop-rotulo {
+  text-align: center;
+  font-size: 0.65rem;
+  line-height: 1.15;
+}
+
+/* ===== Menu flutuante genérico (usado pelo Menu Iniciar da taskbar E pelo
+   menu de botão direito dos ícones) ===== */
+
+.menu-popup-ancora {
+  position: relative;
+}
+.menu-popup {
+  position: absolute;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 0.5rem;
+}
+/* Abre pra cima (a partir da taskbar, no rodapé do desktop). */
+.menu-popup--acima {
+  bottom: 100%;
+  margin-bottom: 4px;
+}
+/* Abre pra baixo (a partir de um ícone, no topo do desktop). */
+.menu-popup--abaixo {
+  top: 100%;
+  margin-top: 4px;
+}
+.menu-popup-item {
+  display: flex;
+  align-items: center;
+  border-radius: 0.3rem;
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-popup-titulo {
+  padding: 6px 10px 2px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.menu-popup-texto {
+  padding: 0 10px 6px;
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.janela {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.janela-titulo {
+  display: flex;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.janela-titulo-texto {
+  overflow: hidden;
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.janela-titulo:active {
+  cursor: grabbing;
+}
+.janela-botoes {
+  display: flex;
+  gap: 4px;
+}
+.janela-botoes button {
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.janela-corpo {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+/* Handle de redimensionar (canto inferior-direito) — só layout/estrutura,
+   não é chrome temático como a barra de título, então uma regra só
+   (usando a cor de borda já re-escopada por tema) cobre os 3 temas. */
+.janela-redimensionar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  touch-action: none;
+  background: linear-gradient(135deg, transparent 50%, var(--color-borda) 50%);
+  opacity: 0.6;
+}
+.janela-redimensionar:hover,
+.janela-redimensionar:active {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .janela-redimensionar {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.taskbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: flex;
+  /* flex-start (não center): num desktop estreito, ".taskbar-janelas" pode
+     quebrar em 2 linhas — com "center" o relógio ficava com metade da altura
+     dele em cima da segunda linha de botões. */
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+}
+.taskbar-esquerda {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+.taskbar-janelas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.taskbar-relogio {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
+.taskbar-item {
+  display: flex;
+  max-width: 140px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.taskbar-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.taskbar-item-texto {
+  overflow: hidden;
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.boot-screen {
+  display: flex;
+  height: 640px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid var(--color-borda);
+}
+
+/* ===== Geração NEON (BlackHat Ops) — reaproveita o tema já existente ===== */
+
+.desktop[data-geracao="neon"] {
+  background-color: var(--color-fundo);
+  background-image:
+    radial-gradient(600px 400px at 20% 10%, rgba(44, 230, 255, 0.08), transparent 60%),
+    linear-gradient(rgba(44, 230, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 230, 255, 0.045) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+}
+.icone-desktop--neon {
+  color: var(--color-texto);
+}
+.icone-desktop--neon:hover,
+.icone-desktop--neon:focus-visible {
+  border-color: var(--color-borda-ouro);
+  background: rgba(44, 230, 255, 0.08);
+}
+.janela--neon {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-borda);
+  background: var(--color-fundo-card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.janela--neon.janela--ativa {
+  border-color: var(--color-borda-ouro);
+  box-shadow:
+    0 0 0 1px rgba(44, 230, 255, 0.2),
+    0 16px 40px rgba(0, 0, 0, 0.6);
+}
+.janela--neon .janela-titulo {
+  border-bottom: 1px solid var(--color-borda);
+  background: linear-gradient(180deg, rgba(44, 230, 255, 0.12), transparent);
+  color: var(--color-texto);
+}
+.janela--neon .janela-botoes button {
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-borda);
+  background: var(--color-fundo);
+  color: var(--color-texto-suave);
+}
+.janela--neon .janela-botoes button:hover {
+  border-color: var(--color-borda-ouro);
+  color: var(--color-texto);
+}
+.taskbar--neon {
+  border-top: 1px solid var(--color-borda);
+  background: var(--color-fundo-card);
+}
+.taskbar-item--neon {
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-borda);
+  background: var(--color-fundo);
+  color: var(--color-texto-suave);
+}
+.taskbar-item--neon.taskbar-item--ativo {
+  border-color: var(--color-primaria);
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--color-texto);
+}
+.taskbar-relogio--neon {
+  color: var(--color-texto-suave);
+}
+.taskbar-iniciar--neon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-borda);
+  background: var(--color-fundo);
+  padding: 4px 10px;
+  color: var(--color-texto-suave);
+  cursor: pointer;
+}
+.taskbar-iniciar--neon:hover,
+.taskbar-iniciar--neon.taskbar-iniciar--aberto {
+  border-color: var(--color-borda-ouro);
+  color: var(--color-texto);
+}
+.menu-popup--neon {
+  border: 1px solid var(--color-borda);
+  background: var(--color-fundo-card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: var(--color-texto);
+}
+.menu-popup-item--neon:hover {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--color-texto);
+}
+.boot-screen--neon {
+  background: #000;
+}
+
+/* ===== Geração WIN98 (Notebook Usado) ===== */
+
+.desktop[data-geracao="win98"] {
+  background-color: #008080;
+  font-family: var(--font-retro-ui);
+}
+.icone-desktop--win98 {
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+  font-family: var(--font-retro-ui);
+}
+.icone-desktop--win98:hover,
+.icone-desktop--win98:focus-visible {
+  background: rgba(0, 0, 128, 0.35);
+  border: 1px dotted #fff;
+}
+.janela--win98 {
+  border: 2px solid #dfdfdf;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff,
+    inset -2px -2px 0 #808080,
+    inset 2px 2px 0 #dfdfdf;
+  color: #000;
+  font-family: var(--font-retro-ui);
+}
+.janela--win98 .janela-titulo {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #fff;
+  font-family: var(--font-retro-ui);
+}
+.janela--win98 .janela-botoes button {
+  border: 1px solid #000;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff;
+  color: #000;
+  font-weight: 700;
+}
+.janela--win98 .janela-botoes button:active {
+  box-shadow:
+    inset 1px 1px 0 #000,
+    inset -1px -1px 0 #fff;
+}
+.janela--win98 .janela-corpo {
+  background: #c0c0c0;
+}
+.taskbar--win98 {
+  border-top: 1px solid #fff;
+  background: #c0c0c0;
+  font-family: var(--font-retro-ui);
+}
+.taskbar-item--win98 {
+  border: 1px solid #000;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff;
+  color: #000;
+}
+.taskbar-item--win98.taskbar-item--ativo {
+  box-shadow:
+    inset 1px 1px 0 #000,
+    inset -1px -1px 0 #808080;
+  background: #d4d0c8;
+}
+.taskbar-iniciar--win98 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #000;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff;
+  padding: 4px 12px;
+  font-weight: 700;
+  color: #000;
+  cursor: pointer;
+  font-family: var(--font-retro-ui);
+}
+.taskbar-iniciar--win98.taskbar-iniciar--aberto {
+  box-shadow:
+    inset 1px 1px 0 #000,
+    inset -1px -1px 0 #fff;
+}
+.menu-popup--win98 {
+  border: 2px solid #dfdfdf;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff,
+    inset -2px -2px 0 #808080,
+    inset 2px 2px 0 #dfdfdf;
+  background: #c0c0c0;
+  color: #000;
+  font-family: var(--font-retro-ui);
+}
+.menu-popup-item--win98:hover {
+  background: #000080;
+  color: #fff;
+}
+.taskbar-relogio--win98 {
+  border: 1px solid #000;
+  box-shadow:
+    inset -1px -1px 0 #fff,
+    inset 1px 1px 0 #808080;
+  color: #000;
+}
+.boot-screen--win98 {
+  background: #000;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 24px;
+}
+.boot-win98-texto {
+  font-family: var(--font-retro-mono);
+  font-size: 1.4rem;
+  line-height: 1.4;
+  color: #b0b0b0;
+  white-space: pre-wrap;
+}
+
+/* ===== Geração XP (Notebook Gamer) ===== */
+
+.desktop[data-geracao="xp"] {
+  background: linear-gradient(180deg, #3a6ea5 0%, #7ba7d9 55%, #a7c6e8 100%);
+}
+.icone-desktop--xp {
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
+.icone-desktop--xp:hover,
+.icone-desktop--xp:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+}
+.janela--xp {
+  border-radius: 10px 10px 4px 4px;
+  border: 2px solid #0a3d91;
+  background: #ece9d8;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  color: #1a1a1a;
+}
+.janela--xp .janela-titulo {
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, #3f8cf3, #0b3d91);
+  color: #fff;
+}
+.janela--xp .janela-botoes button {
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, #6fb3f2, #1f6fd1);
+  color: #fff;
+  font-weight: 700;
+}
+.janela--xp .janela-corpo {
+  background: #ece9d8;
+}
+.taskbar--xp {
+  border-top: 1px solid #0a3d91;
+  background: linear-gradient(180deg, #3f8cf3, #0b3d91);
+}
+.taskbar-item--xp {
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.taskbar-item--xp.taskbar-item--ativo {
+  background: rgba(255, 255, 255, 0.3);
+}
+.taskbar-iniciar--xp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  background: linear-gradient(180deg, #6ec06e, #2f8f2f);
+  padding: 4px 14px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+.taskbar-iniciar--xp.taskbar-iniciar--aberto {
+  background: linear-gradient(180deg, #2f8f2f, #6ec06e);
+}
+.menu-popup--xp {
+  border: 2px solid #0a3d91;
+  border-radius: 8px;
+  background: #ece9d8;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  color: #1a1a1a;
+}
+.menu-popup-item--xp:hover {
+  background: #3f8cf3;
+  color: #fff;
+}
+.taskbar-relogio--xp {
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+}
+.boot-screen--xp {
+  background: linear-gradient(180deg, #0b3d91, #3f8cf3);
+  flex-direction: column;
+  gap: 20px;
+}
+.boot-xp-marca {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+.boot-xp-barra {
+  width: 220px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.boot-xp-barra-preenchida {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6ec06e, #cdeecb);
+  transition-property: width;
+  transition-timing-function: linear;
+}

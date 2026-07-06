@@ -1,65 +1,95 @@
-import Image from "next/image";
+import Link from "next/link";
+import CyberAvatar from "@/components/CyberAvatar";
+import { FASES, TRILHA, XP_TOTAL } from "@/content/trilha1";
+import { CLASSES } from "@/content/classes";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="mx-auto flex max-w-4xl flex-col px-6 py-12">
+      {/* Cabeçalho */}
+      <header className="flex items-center justify-between">
+        <span className="titulo text-lg font-bold tracking-tight">
+          <span className="text-ouro">Code</span>Quest
+        </span>
+        <Link
+          href="/entrar"
+          className="rounded-lg border border-borda px-4 py-2 text-sm text-texto-suave transition hover:border-ouro hover:text-texto"
+        >
+          Entrar
+        </Link>
+      </header>
+
+      {/* Destaque */}
+      <section className="mt-16 text-center">
+        <span className="chip inline-block border border-borda-ouro bg-fundo-card px-4 py-1 text-xs text-ouro">
+          ⚡ Um RPG cyberpunk para aprender a programar de verdade
+        </span>
+        <h1 className="titulo mt-6 text-4xl font-black leading-tight sm:text-6xl">
+          Aprenda. Hackeie.{" "}
+          <span className="text-ouro neon-ciano">Domine.</span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg text-texto-suave">
+          Cada conteúdo é um contrato na Rede. Ganhe XP e créditos, monte seu
+          servidor, instale exploits e invada os servidores da turma. Aqui,
+          quem estuda fica mais forte.
+        </p>
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link
+            href="/trilha"
+            className="titulo chip bg-arcano px-8 py-3 font-bold text-white shadow-lg shadow-arcano/30 transition hover:bg-arcano-forte"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Conectar à Rede →
+          </Link>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Vitrine de especializações */}
+      <section className="mt-20">
+        <div className="filete-ouro" />
+        <h2 className="titulo mt-8 text-center text-2xl font-bold text-ouro">
+          Escolha sua especialização
+        </h2>
+        <div className="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-6">
+          {CLASSES.map((c) => (
+            <div
+              key={c.id}
+              className="cartao flex flex-col items-center rounded-xl p-3"
+            >
+              <CyberAvatar classe={c.id} corPele="2ce6ff" corPrincipal="a855f7" tamanho={56} />
+              <p className="mt-2 text-center text-xs font-semibold">{c.nome}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Prévia da trilha */}
+      <section className="mt-20">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="titulo text-2xl font-bold">{TRILHA.titulo}</h2>
+            <p className="text-texto-suave">{TRILHA.subtitulo}</p>
+          </div>
+          <span className="text-sm text-texto-suave">
+            {FASES.length} contratos · {XP_TOTAL} XP
+          </span>
+        </div>
+
+        <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+          {FASES.map((f) => (
+            <li key={f.ordem} className="cartao flex items-center gap-4 rounded-xl p-4">
+              <span className="text-2xl">{f.emoji}</span>
+              <div>
+                <p className="text-sm text-texto-suave">Contrato {f.ordem}</p>
+                <p className="font-semibold">{f.titulo}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <footer className="mt-20 border-t border-borda pt-6 text-center text-sm text-texto-suave">
+        <span className="codigo">&quot;A informação quer ser livre.&quot; — Provérbio da Rede</span>
+      </footer>
+    </main>
   );
 }

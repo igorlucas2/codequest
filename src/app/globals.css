@@ -1,26 +1,180 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ===== CodeQuest — Tema "Netrun" (cyberpunk / neon-noir) =====
+   Mantemos os NOMES das variáveis do tema antigo (ouro, arcano, sangue...)
+   apontando para as novas cores neon, para que todas as classes já existentes
+   (text-ouro, bg-primaria, border-borda...) adotem o visual cyberpunk. */
+@theme {
+  /* Base — asfalto molhado sob neon */
+  --color-fundo: #05060f;
+  --color-fundo-card: #0b0f1e;
+  --color-fundo-fosco: #121a30;
+  --color-borda: #1d2946;
+  --color-borda-ouro: #0e7490; /* moldura ciano (antigo "borda dourada") */
+
+  /* Acentos neon */
+  --color-ouro: #2ce6ff;        /* ciano-neon: destaque principal (antes ouro) */
+  --color-ouro-claro: #9bf3ff;
+  --color-arcano: #a855f7;      /* violeta elétrico */
+  --color-arcano-forte: #9333ea;
+  --color-sangue: #ff2e63;      /* vermelho-neon (perigo/dano) */
+  --color-esmeralda: #2bff88;   /* verde-terminal (sucesso) */
+
+  /* Texto — HUD */
+  --color-texto: #d8e6ff;
+  --color-texto-suave: #8193bd;
+
+  /* Aliases usados no código (mantidos apontando pro novo tema) */
+  --color-primaria: #a855f7;
+  --color-primaria-forte: #9333ea;
+  --color-destaque: #ffcc33;    /* âmbar-terminal (avisos/rótulos) */
+  --color-sucesso: #2bff88;
+  --color-erro: #ff2e63;
+
+  --font-display: var(--font-display), "Orbitron", sans-serif;
+  --font-body: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-mono-cyber), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  color: var(--color-texto);
+  font-family: var(--font-body);
+  background-color: var(--color-fundo);
+  /* Brilho neon + malha de "grid" da rede + leve varredura CRT */
+  background-image:
+    radial-gradient(1100px 620px at 85% -12%, rgba(168, 85, 247, 0.18), transparent 62%),
+    radial-gradient(900px 560px at -5% 4%, rgba(44, 230, 255, 0.12), transparent 55%),
+    radial-gradient(760px 760px at 50% 122%, rgba(255, 46, 99, 0.10), transparent 60%),
+    linear-gradient(rgba(44, 230, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 230, 255, 0.045) 1px, transparent 1px);
+  background-size: auto, auto, auto, 44px 44px, 44px 44px;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Varredura de scanlines por cima de tudo (não intercepta cliques) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.16) 0px,
+    rgba(0, 0, 0, 0.16) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+/* Títulos com fonte techno + brilho neon */
+.titulo {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 14px rgba(44, 230, 255, 0.35);
+}
+
+/* Painel de HUD com moldura neon sutil (usar .cartao) */
+.cartao {
+  background:
+    linear-gradient(180deg, rgba(44, 230, 255, 0.03), transparent),
+    var(--color-fundo-card);
+  border: 1px solid var(--color-borda);
+  box-shadow:
+    inset 0 1px 0 rgba(44, 230, 255, 0.05),
+    0 8px 26px rgba(0, 0, 0, 0.5);
+}
+
+.cartao-ouro {
+  border-color: color-mix(in srgb, var(--color-ouro) 55%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgba(44, 230, 255, 0.15),
+    0 0 22px rgba(44, 230, 255, 0.12),
+    0 8px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* Filete divisor neon (antigo "filete-ouro") */
+.filete-ouro {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-ouro) 80%, transparent),
+    color-mix(in srgb, var(--color-arcano) 80%, transparent),
+    transparent
+  );
+  box-shadow: 0 0 10px rgba(44, 230, 255, 0.4);
+}
+
+/* Brilho neon reutilizável para acentos */
+.neon-ciano {
+  text-shadow: 0 0 8px rgba(44, 230, 255, 0.6), 0 0 18px rgba(44, 230, 255, 0.3);
+}
+.neon-magenta {
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.6), 0 0 18px rgba(168, 85, 247, 0.3);
+}
+
+/* Código monospace (terminal) */
+.codigo {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Selo/etiqueta HUD (cantos chanfrados de interface techno) */
+.chip {
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+
+/* Sprites/avatares nítidos, sem suavização quando necessário */
+.pixelado {
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
+
+/* Flicker de "conexão estabelecida" ao abrir um terminal (Terminal.tsx) */
+@keyframes glitch-boot {
+  0%, 100% { opacity: 1; filter: none; }
+  20% { opacity: 0.4; filter: brightness(1.6); }
+  45% { opacity: 1; filter: none; }
+  60% { opacity: 0.55; filter: brightness(1.8); }
+  80% { opacity: 1; filter: none; }
+}
+.terminal-glitch {
+  animation: glitch-boot 0.5s steps(2, end);
+}
+
+/* Entrada do toast (Toast.tsx) — pega a regra global de reduced-motion
+   abaixo por já ser uma animation CSS comum. */
+@keyframes toast-entrar {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.toast-entrar {
+  animation: toast-entrar 0.2s ease-out;
+}
+
+/* Respeita a preferência de "menos movimento" do sistema operacional —
+   desativa toda animação/transição CSS (inclusive as classes animate-*
+   do Tailwind e as @keyframes daqui) de uma vez, em vez de caçar cada
+   ocorrência uma por uma. Animações SVG nativas (<animate>, usadas nos
+   LEDs do rack/topologia de rede) não são CSS e por isso não são pegas por
+   esta regra — ver usePrefersReducedMotion() para esses casos pontuais. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

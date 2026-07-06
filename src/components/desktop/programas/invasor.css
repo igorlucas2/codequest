@@ -1,0 +1,21 @@
+/* Flash de acerto/erro de uma rodada (Invasor.tsx). Importado só aqui, não em
+   globals.css. Cada rodada usa uma key nova (índice) então o React remonta o
+   nó e a animação sempre reinicia do zero, mesmo em rodadas seguidas. */
+
+@keyframes invasor-flash-acerto {
+  0% { box-shadow: 0 0 0 2px rgba(43, 255, 136, 0.9); }
+  100% { box-shadow: 0 0 0 2px rgba(43, 255, 136, 0); }
+}
+
+@keyframes invasor-flash-erro {
+  0% { box-shadow: 0 0 0 2px rgba(255, 70, 70, 0.9); }
+  100% { box-shadow: 0 0 0 2px rgba(255, 70, 70, 0); }
+}
+
+.invasor-flash--acerto {
+  animation: invasor-flash-acerto 500ms ease-out;
+}
+
+.invasor-flash--erro {
+  animation: invasor-flash-erro 500ms ease-out;
+}
