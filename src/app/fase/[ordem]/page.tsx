@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { getFase, FASES } from "@/content/trilha1";
+import { FIXER, CABECALHO_TRANSMISSAO, EPILOGO_TRILHA1 } from "@/content/fixer";
 import { useSessao } from "@/components/Sessao";
 import Desafio from "@/components/Desafio";
 
@@ -57,7 +58,7 @@ export default function PaginaFase() {
   const proxima = FASES.find((f) => f.ordem === ordem + 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-[92rem] px-6 py-10">
       <Link href="/trilha" className="text-sm text-texto-suave hover:text-texto">
         ← Mapa da trilha
       </Link>
@@ -72,13 +73,28 @@ export default function PaginaFase() {
         </div>
       </header>
 
-      {/* Estudo (esquerda) + monitor/desafio (direita) */}
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start lg:gap-8">
+      <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,68rem)_minmax(22rem,1fr)] xl:items-start xl:gap-8">
+        <div className="max-w-[68rem] xl:sticky xl:top-6 xl:self-start">
+          <Desafio
+            fase={fase}
+            jaConcluida={jaConcluida}
+            onAcerto={(envio) => concluirFase(fase.ordem, envio)}
+            workspaceId={`usuario-${usuario.id}`}
+          />
+        </div>
+
         <div className="space-y-4">
-          {/* Briefing */}
+          {/* Briefing — transmissão da Fixer para este contrato. */}
           <section className="rounded-2xl border border-borda bg-fundo-card p-5">
-            <p className="text-sm font-semibold text-ouro">📡 Briefing</p>
-            <p className="mt-2 text-texto">{fase.historia}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-ouro">📡 {CABECALHO_TRANSMISSAO}</p>
+              <span className="text-[10px] uppercase tracking-widest text-texto-suave">
+                {FIXER.papel}
+              </span>
+            </div>
+            <p className="mt-2 border-l-2 border-ouro/40 pl-3 text-texto">
+              {fase.transmissao ?? fase.historia}
+            </p>
           </section>
 
           {/* Conceito */}
@@ -98,18 +114,27 @@ export default function PaginaFase() {
           </section>
         </div>
 
-        {/* Desafio — centralizado no próprio espaço da linha (self-center):
-            quando é bem mais curto que a coluna de estudo, fica alinhado ao
-            meio dela em vez de "sobrar" vazio embaixo; ao rolar além desse
-            ponto, o sticky assume e mantém ele visível. */}
-        <div className="lg:sticky lg:top-6 lg:self-center">
-          <Desafio
-            fase={fase}
-            jaConcluida={jaConcluida}
-            onAcerto={(envio) => concluirFase(fase.ordem, envio)}
-          />
-        </div>
       </div>
+
+      {/* Epílogo — transmissão de fechamento da Fixer ao derrubar o ICE final
+          (último contrato da trilha concluído). Fecha o arco e planta o gancho
+          da próxima trilha. */}
+      {jaConcluida && !proxima && (
+        <section className="mt-8 rounded-2xl border border-ouro/40 bg-gradient-to-b from-ouro/10 to-transparent p-6">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-ouro">📡 {CABECALHO_TRANSMISSAO}</p>
+            <span className="text-[10px] uppercase tracking-widest text-texto-suave">
+              {EPILOGO_TRILHA1.titulo}
+            </span>
+          </div>
+          <div className="mt-3 space-y-3 border-l-2 border-ouro/40 pl-3 text-texto">
+            {EPILOGO_TRILHA1.linhas.map((linha, i) => (
+              <p key={i}>{linha}</p>
+            ))}
+          </div>
+          <p className="mt-4 text-right text-xs italic text-texto-suave">{FIXER.assinatura}</p>
+        </section>
+      )}
 
       {/* Navegação após concluir */}
       {jaConcluida && (

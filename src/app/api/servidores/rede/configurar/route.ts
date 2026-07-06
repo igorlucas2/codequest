@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
-import { garantirServidor, carregarInfraServidor } from "@/lib/servidores";
+import {
+  garantirServidor,
+  carregarInfraServidor,
+  carregarStatusSistema,
+  carregarEstadoOperacional,
+} from "@/lib/servidores";
 import { getZona, ipValidoNaZona, setorDoUsuario, MASCARA_CORRETA } from "@/content/rede";
 
 // Grava a configuração de rede do servidor. O wizard já validou tudo
@@ -17,6 +22,20 @@ export async function POST(req: Request) {
   const { internetAtiva } = await carregarInfraServidor(u.id);
   if (!internetAtiva) {
     return NextResponse.json({ erro: "Contrate a internet antes de configurar a rede." }, { status: 400 });
+  }
+  const { sistemaOperacional } = await carregarStatusSistema(u.id);
+  if (!sistemaOperacional) {
+    return NextResponse.json(
+      { erro: "Instale um sistema operacional antes de configurar a rede." },
+      { status: 400 },
+    );
+  }
+  const estado = await carregarEstadoOperacional(u.id);
+  if (!estado.online) {
+    return NextResponse.json({ erro: "Ligue o servidor e aguarde o boot antes de configurar a rede." }, { status: 400 });
+  }
+  if (!estado.patchCordConectado) {
+    return NextResponse.json({ erro: "Conecte o patch cord no servidor antes de configurar IP." }, { status: 400 });
   }
 
   const { ip, mascara, gateway } = await req.json().catch(() => ({}));

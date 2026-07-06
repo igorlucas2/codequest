@@ -73,9 +73,9 @@ export default function PainelProfessor() {
       </div>
 
       <header className="mt-6">
-        <h1 className="titulo text-3xl font-black text-ouro">Console do Instrutor</h1>
+        <h1 className="titulo text-3xl font-black text-ouro">Console do Fixer</h1>
         <p className="text-texto-suave">
-          Progresso da turma na trilha de Lógica de Programação.
+          Rede de runners sob seu contrato — trilha de Lógica de Programação.
         </p>
       </header>
 
@@ -85,7 +85,7 @@ export default function PainelProfessor() {
 
       {alunos && alunos.length === 0 && (
         <p className="mt-8 rounded-2xl border border-borda bg-fundo-card p-6 text-center text-texto-suave">
-          Nenhum runner cadastrado ainda. Peça para a turma se conectar em{" "}
+          Nenhum runner na sua rede ainda. Mande a turma se conectar em{" "}
           <span className="text-destaque">/entrar</span>.
         </p>
       )}
@@ -96,12 +96,12 @@ export default function PainelProfessor() {
             <thead className="bg-fundo-card text-texto-suave">
               <tr>
                 <th className="px-4 py-3 font-medium">Runner</th>
-                <th className="px-4 py-3 font-medium">Progresso</th>
+                <th className="px-4 py-3 font-medium">Contratos</th>
                 <th className="px-4 py-3 font-medium">Onde travou</th>
                 <th className="px-4 py-3 font-medium">XP</th>
-                <th className="px-4 py-3 font-medium">Servidor</th>
-                <th className="px-4 py-3 font-medium">PvP</th>
-                <th className="px-4 py-3 font-medium">Última atividade</th>
+                <th className="px-4 py-3 font-medium">Infra</th>
+                <th className="px-4 py-3 font-medium">Invasões</th>
+                <th className="px-4 py-3 font-medium">Último sinal</th>
               </tr>
             </thead>
             <tbody>

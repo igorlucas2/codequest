@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { moedasDaFase, type Fase } from "@/content/trilha1";
 import { type LinhaTerminal } from "@/components/Terminal";
-import EditorCodigo from "@/components/EditorCodigo";
+import Desktop from "@/components/desktop/Desktop";
 import MonitorFrame from "@/components/MonitorFrame";
+import { useSessao } from "@/components/Sessao";
 import Button from "@/components/ui/Button";
 import type { EnvioDesafio, ResultadoValidacao } from "@/lib/tiposTrilha";
 
@@ -18,20 +19,23 @@ export default function Desafio({
   fase,
   jaConcluida,
   onAcerto,
+  workspaceId,
 }: {
   fase: Fase;
   jaConcluida: boolean;
   onAcerto: (envio: EnvioDesafio) => Promise<{ ok: boolean; erro?: string }>;
+  workspaceId?: string;
 }) {
   const { desafio } = fase;
+  const { equipados, stats } = useSessao();
+  const pastaContrato = `aulas/contrato-${String(fase.ordem).padStart(2, "0")}-${fase.slug}`;
   const [estado, setEstado] = useState<Estado>("respondendo");
   const [escolha, setEscolha] = useState<number | null>(null);
   const [texto, setTexto] = useState("");
   const [mostrarDica, setMostrarDica] = useState(false);
   const [passoAtual, setPassoAtual] = useState(0);
 
-  // Estado do editor de código (usado pelos tipos "terminal" e "teste_final").
-  const [codigoEditor, setCodigoEditor] = useState("");
+  // Saida da IDE usada pelos tipos "terminal" e "teste_final".
   const [saidaEditor, setSaidaEditor] = useState<LinhaTerminal[]>([]);
 
   async function validarNoServidor(envio: EnvioDesafio): Promise<ResultadoValidacao | null> {
@@ -65,10 +69,10 @@ export default function Desafio({
     }
   }
 
-  async function rodarTerminal() {
+  async function rodarTerminal(codigo: string) {
     if (desafio.tipo !== "terminal") return;
     setEstado("verificando");
-    const envio: EnvioDesafio = { tipo: "terminal", codigo: codigoEditor };
+    const envio: EnvioDesafio = { tipo: "terminal", codigo };
     const resultado = await validarNoServidor(envio);
     const acertou = resultado?.tipo === "binario" && resultado.correto;
     if (acertou) {
@@ -83,10 +87,10 @@ export default function Desafio({
     }
   }
 
-  async function rodarTesteFinal() {
+  async function rodarTesteFinal(codigo: string) {
     if (desafio.tipo !== "teste_final") return;
     setEstado("verificando");
-    const envio: EnvioDesafio = { tipo: "teste_final", codigo: codigoEditor };
+    const envio: EnvioDesafio = { tipo: "teste_final", codigo };
     const resultado = await validarNoServidor(envio);
 
     if (!resultado || resultado.tipo !== "progressivo") {
@@ -119,9 +123,10 @@ export default function Desafio({
   const bloqueado = estado === "certo" || estado === "verificando";
   const podeValidar =
     !bloqueado && (desafio.tipo === "multipla" ? escolha !== null : texto.trim().length > 0);
+  const usaNotebook = desafio.tipo === "terminal" || desafio.tipo === "teste_final";
 
   return (
-    <div className="rounded-2xl border border-borda bg-fundo-card p-5">
+    <div className={usaNotebook ? "space-y-4" : "rounded-2xl border border-borda bg-fundo-card p-5"}>
       <p className="text-sm font-semibold text-destaque">🎯 Desafio</p>
       <p className="mt-2">{desafio.enunciado}</p>
 
@@ -175,22 +180,35 @@ export default function Desafio({
         </div>
       )}
 
-      {/* Terminal: editor de código estilo VS Code — escreve, salva, roda */}
+      {/* Terminal: abre o mesmo notebook do jogador com a IDE focada no contrato. */}
       {desafio.tipo === "terminal" && (
         <div className="mt-4">
-          <MonitorFrame compacto>
-            <EditorCodigo
-              valor={codigoEditor}
-              aoMudarValor={setCodigoEditor}
-              desabilitado={bloqueado}
-              saida={saidaEditor}
-              aoRodar={() => void rodarTerminal()}
+          <MonitorFrame>
+            <Desktop
+              equipados={equipados}
+              velocidade={stats.velocidade}
+              programaInicial="ide"
+              programaInicialMaximizado
+              sempreLigado
+              usarEstadoSalvo={false}
+              persistirEstado={false}
+              ide={{
+                workspaceId: workspaceId ?? "anon",
+                arquivoInicial: `${pastaContrato}/src/solucao.py`,
+                readmeInicial: `# ${fase.titulo}\n\nContrato ${fase.ordem} da trilha. Guarde aqui sua solucao e anotacoes.`,
+                desabilitado: bloqueado,
+                saida: saidaEditor,
+                aoExecutar: (codigo) => void rodarTerminal(codigo),
+                titulo: "CodeQuest IDE",
+                subtitulo: pastaContrato,
+                preferirArquivoInicial: true,
+              }}
             />
           </MonitorFrame>
         </div>
       )}
 
-      {/* Teste final: script único crescendo, uma camada de defesa por vez */}
+      {/* Teste final: usa o mesmo notebook do jogador para evoluir o script. */}
       {desafio.tipo === "teste_final" && (
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold text-destaque">
@@ -199,14 +217,26 @@ export default function Desafio({
           <p className="mb-2 text-sm text-ouro">
             📜 {desafio.passos[Math.min(passoAtual, desafio.passos.length - 1)].narrativa}
           </p>
-          <MonitorFrame compacto>
-            <EditorCodigo
-              valor={codigoEditor}
-              aoMudarValor={setCodigoEditor}
-              desabilitado={bloqueado}
-              saida={saidaEditor}
-              aoRodar={() => void rodarTesteFinal()}
-              arquivo="exploit.py"
+          <MonitorFrame>
+            <Desktop
+              equipados={equipados}
+              velocidade={stats.velocidade}
+              programaInicial="ide"
+              programaInicialMaximizado
+              sempreLigado
+              usarEstadoSalvo={false}
+              persistirEstado={false}
+              ide={{
+                workspaceId: workspaceId ?? "anon",
+                arquivoInicial: `${pastaContrato}/src/exploit.py`,
+                readmeInicial: `# ${fase.titulo}\n\nMantenha os passos do ICE neste projeto final.`,
+                desabilitado: bloqueado,
+                saida: saidaEditor,
+                aoExecutar: (codigo) => void rodarTesteFinal(codigo),
+                titulo: "CodeQuest IDE",
+                subtitulo: pastaContrato,
+                preferirArquivoInicial: true,
+              }}
             />
           </MonitorFrame>
         </div>

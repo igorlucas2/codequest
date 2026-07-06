@@ -38,7 +38,7 @@ export const SWITCH_TIERS: SwitchTier[] = [
     icone: "🖧",
     preco: 600,
     portas: 24,
-    descricao: "Switch de núcleo, alta capacidade — o backbone de um rack cheio, 24 portas de sobra.",
+    descricao: "Switch de núcleo, alta capacidade — uplink central para um rack cheio, 24 portas de sobra.",
   },
 ];
 

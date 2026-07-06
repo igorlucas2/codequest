@@ -3,7 +3,11 @@ import { transacao, SaidaTransacao } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { custoUnidadeNoTier } from "@/content/servidores";
 import { getSwitchTier } from "@/content/switches";
-import { garantirServidor, carregarInfraServidorParaAtualizar } from "@/lib/servidores";
+import {
+  garantirServidor,
+  carregarInfraServidorParaAtualizar,
+  carregarEstadoOperacional,
+} from "@/lib/servidores";
 
 // Compra um servidor extra — cópia idêntica do rack principal (mesmo tier/
 // SO/rede), só soma capacidade e bônus de combate (ver plano). A partir do
@@ -13,6 +17,10 @@ export async function POST() {
   if (!u) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
 
   await garantirServidor(u.id);
+  const estado = await carregarEstadoOperacional(u.id);
+  if (estado.ligado) {
+    return NextResponse.json({ erro: "Desligue o servidor no Datacenter antes de adicionar hardware." }, { status: 400 });
+  }
 
   try {
     return await transacao(async (conn) => {

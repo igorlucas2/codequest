@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { transacao, SaidaTransacao } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { getSistemaOperacional } from "@/content/sistemasOperacionais";
-import { garantirServidor } from "@/lib/servidores";
+import { garantirServidor, carregarEstadoOperacional } from "@/lib/servidores";
 
 // Instala (compra) um sistema operacional no servidor: valida saldo no
 // servidor, nunca no cliente — mesmo padrão transacional de upgrade/comprar.
@@ -16,6 +16,13 @@ export async function POST(req: Request) {
   if (!so) return NextResponse.json({ erro: "Sistema operacional inválido." }, { status: 400 });
 
   await garantirServidor(u.id);
+  const estado = await carregarEstadoOperacional(u.id);
+  if (estado.ligado) {
+    return NextResponse.json(
+      { erro: "Desligue o servidor no Datacenter antes de instalar ou trocar o sistema operacional." },
+      { status: 400 },
+    );
+  }
 
   try {
     return await transacao(async (conn) => {

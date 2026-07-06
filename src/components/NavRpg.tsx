@@ -9,7 +9,7 @@ const LINKS = [
   { href: "/trilha", rotulo: "Trilha", icone: "🌐" },
   { href: "/personagem", rotulo: "Runner", icone: "🤖" },
   { href: "/loja", rotulo: "Mercado", icone: "🛒" },
-  { href: "/servidores", rotulo: "Servidor", icone: "🗄️" },
+  { href: "/servidores", rotulo: "Datacenter", icone: "🗄️" },
   { href: "/computador", rotulo: "Computador", icone: "🖥️" },
   { href: "/ranking", rotulo: "Ranking", icone: "📊" },
 ];
@@ -20,7 +20,7 @@ export default function NavRpg() {
   const { usuario, moedas, sair } = useSessao();
 
   return (
-    <nav className="cartao flex flex-wrap items-center justify-between gap-3 rounded-2xl px-3 py-2">
+    <nav className="cartao relative left-1/2 flex w-[calc(100dvw-1rem)] -translate-x-1/2 flex-wrap items-center justify-between gap-3 rounded-2xl px-3 py-2">
       <div className="flex flex-wrap items-center gap-1">
         {LINKS.map((l) => {
           const ativo = pathname === l.href;

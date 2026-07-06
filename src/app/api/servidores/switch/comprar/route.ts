@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { transacao, SaidaTransacao } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { getSwitchTier } from "@/content/switches";
-import { garantirServidor, carregarInfraServidorParaAtualizar } from "@/lib/servidores";
+import {
+  garantirServidor,
+  carregarInfraServidorParaAtualizar,
+  carregarEstadoOperacional,
+} from "@/lib/servidores";
 
 // Compra (ou troca) o switch — mesmo padrão de "formatar e reinstalar" do
 // sistema operacional: um switch só, substitui o anterior. Não permite trocar
@@ -16,6 +20,10 @@ export async function POST(req: Request) {
   if (!sw) return NextResponse.json({ erro: "Switch inválido." }, { status: 400 });
 
   await garantirServidor(u.id);
+  const estado = await carregarEstadoOperacional(u.id);
+  if (estado.ligado) {
+    return NextResponse.json({ erro: "Desligue o servidor no Datacenter antes de trocar o switch." }, { status: 400 });
+  }
 
   try {
     return await transacao(async (conn) => {

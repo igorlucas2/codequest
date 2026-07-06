@@ -24,6 +24,13 @@ export type JanelaEstado = {
   altura: number;
   zIndex: number;
   minimizada: boolean;
+  maximizada?: boolean;
+  restaurar?: {
+    x: number;
+    y: number;
+    largura: number;
+    altura: number;
+  };
   // Dado específico do programa hospedado (ex: qual oponente o "Invasor"
   // está mirando). Opaco aqui de propósito — só quem renderiza o conteúdo
   // (Desktop.tsx) sabe interpretar o formato de cada programa.
@@ -73,28 +80,40 @@ function Janela({
   // funciona pra qualquer tamanho de container automaticamente.
   const largura = `min(${janela.largura}px, calc(100% - 16px))`;
   const left = `min(${janela.x}px, calc(100% - ${largura} - 8px))`;
+  const estiloNormal = {
+    left,
+    top: janela.y,
+    width: largura,
+    height: janela.altura,
+  };
+  const estiloMaximizado = {
+    left: 8,
+    top: 8,
+    width: "calc(100% - 16px)",
+    height: ALTURA_DESKTOP - ALTURA_RESERVADA_TASKBAR - 16,
+  };
 
   return (
     <div
-      className={`janela janela--${geracao} ${ativa ? "janela--ativa" : ""}`}
+      className={`janela janela--${geracao} ${ativa ? "janela--ativa" : ""} ${
+        janela.maximizada ? "janela--maximizada" : ""
+      }`}
       // Minimizar esconde via CSS em vez de desmontar (return null): o
       // programa hospedado mantém seu estado local (histórico do
       // terminal, timer de combate do Invasor) enquanto minimizado.
       style={{
         display: janela.minimizada ? "none" : undefined,
-        left,
-        top: janela.y,
-        width: largura,
-        height: janela.altura,
+        ...(janela.maximizada ? estiloMaximizado : estiloNormal),
         zIndex: janela.zIndex,
       }}
       onPointerDownCapture={() => dispatch({ tipo: "focar", id: janela.id })}
     >
       <div
         className="janela-titulo"
-        onPointerDown={arraste.onPointerDown}
-        onPointerMove={arraste.onPointerMove}
-        onPointerUp={arraste.onPointerUp}
+        onDoubleClick={() => dispatch({ tipo: "maximizar", id: janela.id })}
+        onPointerDown={janela.maximizada ? undefined : arraste.onPointerDown}
+        onPointerMove={janela.maximizada ? undefined : arraste.onPointerMove}
+        onPointerUp={janela.maximizada ? undefined : arraste.onPointerUp}
       >
         <span className="janela-titulo-texto">
           <span className="mr-1">{janela.icone}</span>
@@ -106,19 +125,28 @@ function Janela({
           <button onClick={() => dispatch({ tipo: "minimizar", id: janela.id })} aria-label="Minimizar">
             _
           </button>
+          <button
+            onClick={() => dispatch({ tipo: "maximizar", id: janela.id })}
+            aria-label={janela.maximizada ? "Restaurar janela" : "Maximizar janela"}
+            title={janela.maximizada ? "Restaurar" : "Maximizar"}
+          >
+            {janela.maximizada ? "▣" : "□"}
+          </button>
           <button onClick={() => dispatch({ tipo: "fechar", id: janela.id })} aria-label="Fechar">
             ×
           </button>
         </div>
       </div>
       <div className="janela-corpo">{children}</div>
-      <div
-        className="janela-redimensionar"
-        onPointerDown={redimensionar.onPointerDown}
-        onPointerMove={redimensionar.onPointerMove}
-        onPointerUp={redimensionar.onPointerUp}
-        aria-hidden="true"
-      />
+      {!janela.maximizada && (
+        <div
+          className="janela-redimensionar"
+          onPointerDown={redimensionar.onPointerDown}
+          onPointerMove={redimensionar.onPointerMove}
+          onPointerUp={redimensionar.onPointerUp}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 }

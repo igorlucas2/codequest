@@ -10,6 +10,7 @@ import {
   carregarAppsInstalados,
   carregarStatusSistema,
   carregarLayoutEquipamentos,
+  carregarEstadoOperacional,
   capacidadeUsada,
   acumuloDoApp,
   acumuloTotal,
@@ -29,6 +30,7 @@ export async function GET() {
   const instalados = await carregarAppsInstalados(u.id);
   const { sistemaOperacional, sshHabilitado } = await carregarStatusSistema(u.id);
   const layoutSalvo = await carregarLayoutEquipamentos(u.id);
+  const estadoOperacional = await carregarEstadoOperacional(u.id);
 
   const apps = instalados.map((a) => {
     const cat = getApp(a.appId);
@@ -68,6 +70,7 @@ export async function GET() {
     switchInfo,
     catalogoSwitch: SWITCH_TIERS,
     internetAtiva,
+    estadoOperacional,
     layoutSalvo,
   });
 }

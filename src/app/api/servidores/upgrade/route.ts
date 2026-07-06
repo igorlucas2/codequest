@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { proximoTier } from "@/content/servidores";
-import { garantirServidor, carregarInfraServidor, multiplicarPorFrota } from "@/lib/servidores";
+import {
+  garantirServidor,
+  carregarInfraServidor,
+  carregarEstadoOperacional,
+  multiplicarPorFrota,
+} from "@/lib/servidores";
 
 // Faz upgrade do servidor pro PRÓXIMO tier da lista (sem pular). Como
 // servidores extras são cópias idênticas do rack principal, o upgrade de
@@ -14,6 +19,10 @@ export async function POST() {
   if (!u) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
 
   const tierAtual = await garantirServidor(u.id);
+  const estado = await carregarEstadoOperacional(u.id);
+  if (estado.ligado) {
+    return NextResponse.json({ erro: "Desligue o servidor no Datacenter antes de fazer upgrade físico." }, { status: 400 });
+  }
   const alvo = proximoTier(tierAtual);
   if (!alvo)
     return NextResponse.json({ erro: "Seu servidor já está no tier máximo." }, { status: 400 });

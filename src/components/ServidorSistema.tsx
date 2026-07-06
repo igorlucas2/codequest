@@ -1,43 +1,73 @@
+import { useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Terminal, { LIMPAR_TERMINAL, type LinhaTerminal } from "@/components/Terminal";
 import { normalizar } from "@/lib/texto";
-import { getSistemaOperacional, type SistemaOperacional, type SistemaOperacionalId } from "@/content/sistemasOperacionais";
+import { getSistemaOperacional, type SistemaOperacionalId } from "@/content/sistemasOperacionais";
 
-// Catálogo de sistemas operacionais do servidor — mesmo formato de card-list
-// do "Catálogo de apps": comprar um SO não tem certo/errado, é só decisão de
-// compra (diferente do wizard de Rede, que valida configuração).
+export type EstadoOperacionalServidorView = {
+  ligado: boolean;
+  ligando: boolean;
+  online: boolean;
+  estado: "desligado" | "ligando" | "ligado";
+  bootFinalizaEm: string | null;
+  bootRestanteMs: number;
+  sshUsuario: string;
+  patchCordConectado: boolean;
+  tempoBootSegundos: number;
+};
+
 export default function ServidorSistema({
   sistemaOperacional,
   sshHabilitado,
-  catalogo,
-  moedas,
+  estadoOperacional,
   processando,
   velocidade,
-  onInstalar,
+  onLigar,
+  onDesligar,
+  onSalvarUsuarioSsh,
   onHabilitarSsh,
 }: {
   sistemaOperacional: SistemaOperacionalId | null;
   sshHabilitado: boolean;
-  catalogo: SistemaOperacional[];
-  moedas: number;
+  estadoOperacional: EstadoOperacionalServidorView;
   processando: string | null;
   velocidade: number;
-  onInstalar: (osId: SistemaOperacionalId) => void;
+  onLigar: () => Promise<void>;
+  onDesligar: () => Promise<void>;
+  onSalvarUsuarioSsh: (usuarioSsh: string) => Promise<void>;
   onHabilitarSsh: () => Promise<void>;
 }) {
   const atual = sistemaOperacional ? getSistemaOperacional(sistemaOperacional) : null;
+  const [usuarioSsh, setUsuarioSsh] = useState(estadoOperacional.sshUsuario);
+  const [agora, setAgora] = useState(0);
+
+  useEffect(() => {
+    if (!estadoOperacional.ligando) return;
+    const id = window.setInterval(() => setAgora(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, [estadoOperacional.ligando]);
+
+  const bootRestanteMs = useMemo(() => {
+    if (!estadoOperacional.bootFinalizaEm) return estadoOperacional.bootRestanteMs;
+    if (agora === 0) return estadoOperacional.bootRestanteMs;
+    return Math.max(0, new Date(estadoOperacional.bootFinalizaEm).getTime() - agora);
+  }, [agora, estadoOperacional.bootFinalizaEm, estadoOperacional.bootRestanteMs]);
+  const segundosRestantes = Math.ceil(bootRestanteMs / 1000);
 
   async function tratarComandoConsole(comandoBruto: string): Promise<LinhaTerminal[]> {
     const comando = normalizar(comandoBruto);
     if (comando === "limpar" || comando === "clear") return LIMPAR_TERMINAL;
     if (!atual) return [{ texto: "Nenhum sistema operacional instalado.", tipo: "erro" }];
+    if (!estadoOperacional.online) {
+      return [{ texto: "Console indisponível: servidor desligado ou em boot.", tipo: "erro" }];
+    }
 
     if (comando === "ajuda" || comando === "help") {
       return [
-        { texto: "sshd não está ativo — sem isso, o SSH remoto não conecta neste servidor.", tipo: "info" },
+        { texto: "sshd não está ativo. Sem isso, o SSH remoto não conecta neste servidor.", tipo: "info" },
         { texto: `Rode: ${atual.comandoHabilitarSsh}`, tipo: "saida" },
-        { texto: "  status — mostra o status atual do serviço", tipo: "saida" },
+        { texto: "  status - mostra o status atual do serviço", tipo: "saida" },
       ];
     }
     if (comando === "status") {
@@ -47,44 +77,115 @@ export default function ServidorSistema({
       await onHabilitarSsh();
       return [
         { texto: "sshd iniciado e habilitado.", tipo: "sucesso" },
-        { texto: "Agora o SSH remoto já pode conectar nesse servidor.", tipo: "info" },
+        { texto: `Acesso remoto liberado para o usuário ${estadoOperacional.sshUsuario}.`, tipo: "info" },
       ];
     }
     return [{ texto: `comando não encontrado: ${comandoBruto}. Digite 'ajuda'.`, tipo: "erro" }];
   }
 
   return (
-    <div className="space-y-3">
-      {atual ? (
-        <Card dourado arredondamento="xl" className="flex items-center gap-3 p-3">
-          <span className="text-2xl">{atual.icone}</span>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-ouro">
-              {atual.nome} <span className="text-xs font-normal text-texto-suave">(instalado)</span>
-            </p>
-            <p className="text-xs text-texto-suave">Gerenciador de pacotes: {atual.gerenciadorPacotes}</p>
-            <p className={`text-xs font-semibold ${sshHabilitado ? "text-sucesso" : "text-destaque"}`}>
-              {sshHabilitado ? "✅ SSH ativo" : "⚠️ sshd inativo"}
-            </p>
+    <div className="grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="space-y-3">
+        <Card dourado={!!atual} arredondamento="xl" className="p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">{atual?.icone ?? "💿"}</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-ouro">{atual ? atual.nome : "Sem sistema operacional"}</p>
+              <p className="mt-1 text-xs text-texto-suave">
+                {atual
+                  ? `Gerenciador de pacotes: ${atual.gerenciadorPacotes}`
+                  : "Compre e instale um SO em Mercado -> Datacenter antes de ligar o servidor."}
+              </p>
+            </div>
           </div>
         </Card>
-      ) : (
-        <Card arredondamento="xl" className="p-3 text-center text-sm text-texto-suave">
-          Nenhum sistema operacional instalado — sem ele, o SSH não conecta no seu servidor.
-        </Card>
-      )}
 
-      {atual && !sshHabilitado && (
-        <Card arredondamento="xl" className="p-3">
-          <p className="mb-2 text-xs text-texto-suave">
-            🔌 Console local do servidor — acesso direto, sem precisar de SSH (é assim que você
-            liga um serviço antes dele poder aceitar conexões remotas).
+        <Card arredondamento="xl" className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-texto">Energia</p>
+              <p className="mt-1 text-xs text-texto-suave">
+                Boot desta geração: {estadoOperacional.tempoBootSegundos}s.
+              </p>
+            </div>
+            <span
+              className={`rounded-lg px-2 py-1 text-xs font-semibold ${
+                estadoOperacional.online
+                  ? "bg-sucesso/15 text-sucesso"
+                  : estadoOperacional.ligando
+                    ? "bg-destaque/15 text-destaque"
+                    : "bg-fundo text-texto-suave"
+              }`}
+            >
+              {estadoOperacional.online
+                ? "Ligado"
+                : estadoOperacional.ligando
+                  ? `Boot ${segundosRestantes}s`
+                  : "Desligado"}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {estadoOperacional.ligado ? (
+              <Button
+                variante="perigo"
+                onClick={onDesligar}
+                carregando={processando === "energia-desligar"}
+              >
+                Desligar
+              </Button>
+            ) : (
+              <Button
+                onClick={onLigar}
+                disabled={!atual}
+                carregando={processando === "energia-ligar"}
+                title={atual ? "" : "Instale um sistema operacional antes de ligar"}
+              >
+                Ligar servidor
+              </Button>
+            )}
+          </div>
+          <p className="mt-3 text-xs text-texto-suave">
+            Desligado permite upgrade físico, troca de switch, instalação de SO e patch cord. Ligado permite console, rede e apps.
           </p>
-          <div className="flex h-56 flex-col">
+        </Card>
+
+        <Card arredondamento="xl" className="p-4">
+          <p className="text-sm font-semibold text-texto">Usuário SSH</p>
+          <p className="mt-1 text-xs text-texto-suave">
+            Esse usuário será usado no terminal do computador: ssh usuario@ip.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <input
+              value={usuarioSsh}
+              onChange={(e) => setUsuarioSsh(e.target.value)}
+              disabled={!atual || !estadoOperacional.online}
+              className="codigo min-w-0 flex-1 rounded-lg border border-borda bg-fundo px-3 py-2 text-sm outline-none focus:border-primaria disabled:opacity-50"
+            />
+            <Button
+              tamanho="sm"
+              onClick={() => onSalvarUsuarioSsh(usuarioSsh)}
+              disabled={!atual || !estadoOperacional.online || usuarioSsh === estadoOperacional.sshUsuario}
+              carregando={processando === "salvar-usuario-ssh"}
+            >
+              Salvar
+            </Button>
+          </div>
+          <p className={`mt-2 text-xs font-semibold ${sshHabilitado ? "text-sucesso" : "text-destaque"}`}>
+            {sshHabilitado ? "sshd ativo" : "sshd inativo"}
+          </p>
+        </Card>
+      </div>
+
+      <Card arredondamento="xl" className="flex min-h-80 flex-col p-4">
+        <p className="mb-2 text-xs text-texto-suave">
+          Console local: acesso direto ao servidor. Use-o para subir serviços antes de acessar por SSH.
+        </p>
+        {atual && estadoOperacional.online && !sshHabilitado ? (
+          <div className="flex min-h-0 flex-1 flex-col">
             <Terminal
               linhasIniciais={[
-                { texto: `Console local — ${atual.nome}.`, tipo: "info" },
-                { texto: "sshd não está ativo. Digite 'ajuda' pra saber como ligar o serviço.", tipo: "saida" },
+                { texto: `Console local - ${atual.nome}.`, tipo: "info" },
+                { texto: "sshd não está ativo. Digite 'ajuda' para ligar o serviço.", tipo: "saida" },
               ]}
               prompt="root@localhost:~$"
               placeholder="digite um comando..."
@@ -93,35 +194,16 @@ export default function ServidorSistema({
               preencherAltura
             />
           </div>
-        </Card>
-      )}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {catalogo
-          .filter((so) => so.id !== sistemaOperacional)
-          .map((so) => {
-            const semSaldo = moedas < so.preco;
-            return (
-              <Card key={so.id} arredondamento="xl" className="flex items-center gap-3 p-3">
-                <span className="text-2xl">{so.icone}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{so.nome}</p>
-                  <p className="text-xs text-texto-suave">{so.descricao}</p>
-                  <p className="text-xs text-texto-suave">Gerenciador: {so.gerenciadorPacotes}</p>
-                </div>
-                <Button
-                  tamanho="sm"
-                  disabled={processando !== null || semSaldo}
-                  carregando={processando === `instalar-so-${so.id}`}
-                  onClick={() => onInstalar(so.id)}
-                  title={semSaldo ? "Créditos insuficientes" : ""}
-                >
-                  ◈ {so.preco}
-                </Button>
-              </Card>
-            );
-          })}
-      </div>
+        ) : (
+          <div className="grid min-h-64 flex-1 place-items-center rounded-xl border border-borda bg-fundo p-4 text-center text-sm text-texto-suave">
+            {sshHabilitado
+              ? "Serviço SSH ativo. Acesse pelo Terminal do computador usando o usuário configurado."
+              : atual
+                ? "Ligue o servidor e aguarde o boot para usar o console local."
+                : "Instale um sistema operacional pelo Mercado para liberar o console."}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { executar } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
-import { garantirServidor, carregarStatusSistema } from "@/lib/servidores";
+import { garantirServidor, carregarStatusSistema, carregarEstadoOperacional } from "@/lib/servidores";
 
 // Marca o serviço sshd como habilitado — chamado depois que o jogador roda,
 // no console local (ver ServidorSistema.tsx), o comando real de ligar o
@@ -16,6 +16,10 @@ export async function POST() {
   const { sistemaOperacional } = await carregarStatusSistema(u.id);
   if (!sistemaOperacional) {
     return NextResponse.json({ erro: "Nenhum sistema operacional instalado." }, { status: 400 });
+  }
+  const estado = await carregarEstadoOperacional(u.id);
+  if (!estado.online) {
+    return NextResponse.json({ erro: "Ligue o servidor e aguarde o boot antes de iniciar o sshd." }, { status: 400 });
   }
 
   await executar("UPDATE servidores SET ssh_habilitado = 1 WHERE usuario_id = ?", [u.id]);

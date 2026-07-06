@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { usuarioAtual } from "@/lib/auth";
-import { garantirServidor, carregarStatusSistema } from "@/lib/servidores";
+import { garantirServidor, carregarStatusSistema, carregarEstadoOperacional } from "@/lib/servidores";
 import { carregarConfigRede } from "@/lib/rede";
 
 // Status mínimo pro programa "SSH" do desktop: IP configurado (se houver),
@@ -15,11 +15,16 @@ export async function GET() {
   await garantirServidor(u.id);
   const cfg = await carregarConfigRede(u.id);
   const { sistemaOperacional, sshHabilitado } = await carregarStatusSistema(u.id);
+  const estadoOperacional = await carregarEstadoOperacional(u.id);
 
   return NextResponse.json({
     ip: cfg.configurada ? cfg.ip : null,
     configurada: cfg.configurada,
     sistemaOperacional,
     sshHabilitado,
+    online: estadoOperacional.online,
+    ligando: estadoOperacional.ligando,
+    sshUsuario: estadoOperacional.sshUsuario,
+    patchCordConectado: estadoOperacional.patchCordConectado,
   });
 }

@@ -7,6 +7,8 @@ import {
   garantirServidor,
   carregarInfraServidorParaAtualizar,
   carregarAppsInstaladosParaAtualizar,
+  carregarEstadoOperacional,
+  carregarStatusSistema,
   capacidadeUsada,
   multiplicarPorFrota,
 } from "@/lib/servidores";
@@ -23,6 +25,14 @@ export async function POST(req: Request) {
   if (!app) return NextResponse.json({ erro: "App inválido." }, { status: 400 });
 
   await garantirServidor(u.id);
+  const estado = await carregarEstadoOperacional(u.id);
+  if (!estado.online) {
+    return NextResponse.json({ erro: "Ligue o servidor e aguarde o boot antes de instalar apps." }, { status: 400 });
+  }
+  const { sistemaOperacional } = await carregarStatusSistema(u.id);
+  if (!sistemaOperacional) {
+    return NextResponse.json({ erro: "Instale um sistema operacional antes de instalar apps." }, { status: 400 });
+  }
 
   try {
     return await transacao(async (conn) => {

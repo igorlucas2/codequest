@@ -10,6 +10,18 @@ import type { SwitchTierId } from "@/content/switches";
 // espírito dos cooldowns de 1x/hora (arena) e 1x/dia (invasão) já existentes.
 const CAP_HORAS_ACUMULO = 12;
 
+export type EstadoOperacionalServidor = {
+  ligado: boolean;
+  ligando: boolean;
+  online: boolean;
+  estado: "desligado" | "ligando" | "ligado";
+  bootFinalizaEm: string | null;
+  bootRestanteMs: number;
+  sshUsuario: string;
+  patchCordConectado: boolean;
+  tempoBootSegundos: number;
+};
+
 export type AppInstalado = {
   appId: string;
   instaladoEm: Date;
@@ -85,6 +97,45 @@ export function bonusDoTier(tierId: ServidorTierId): { defesa: number; vida: num
 // — capacidade e bônus de combate simplesmente multiplicam pela frota inteira.
 export function multiplicarPorFrota(valor: number, servidoresExtras: number): number {
   return valor * (1 + servidoresExtras);
+}
+
+function msDaData(valor: Date | string | null | undefined): number | null {
+  if (!valor) return null;
+  const ms = valor instanceof Date ? valor.getTime() : new Date(valor).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+export async function carregarEstadoOperacional(usuarioId: number): Promise<EstadoOperacionalServidor> {
+  const linhas = await consultar<{
+    tier: ServidorTierId;
+    servidor_ligado: number;
+    boot_finaliza_em: Date | string | null;
+    ssh_usuario: string | null;
+    patch_cord_conectado: number;
+  }>(
+    "SELECT tier, servidor_ligado, boot_finaliza_em, ssh_usuario, patch_cord_conectado FROM servidores WHERE usuario_id = ? LIMIT 1",
+    [usuarioId],
+  );
+  const l = linhas[0];
+  const tier = getServidorTier(l?.tier ?? "node");
+  const tempoBootSegundos = tier?.tempoBootSegundos ?? 24;
+  const ligado = l?.servidor_ligado === 1;
+  const bootMs = msDaData(l?.boot_finaliza_em);
+  const agora = Date.now();
+  const ligando = ligado && bootMs !== null && bootMs > agora;
+  const online = ligado && !ligando;
+
+  return {
+    ligado,
+    ligando,
+    online,
+    estado: ligando ? "ligando" : online ? "ligado" : "desligado",
+    bootFinalizaEm: bootMs ? new Date(bootMs).toISOString() : null,
+    bootRestanteMs: ligando && bootMs ? Math.max(0, bootMs - agora) : 0,
+    sshUsuario: l?.ssh_usuario || "runner",
+    patchCordConectado: l?.patch_cord_conectado === 1,
+    tempoBootSegundos,
+  };
 }
 
 export async function carregarInfraServidor(usuarioId: number): Promise<{

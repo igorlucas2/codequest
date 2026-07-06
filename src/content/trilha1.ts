@@ -50,7 +50,12 @@ export type Fase = {
   slug: string;
   titulo: string;
   emoji: string;
+  // Narração neutra do contrato (contexto do mundo). Usada como fallback do
+  // briefing se um contrato não tiver `transmissao`.
   historia: string;
+  // Fala em primeira pessoa da Fixer (VESPER) para este contrato — é o que o
+  // briefing exibe, assinado por ela. Ver src/content/fixer.ts.
+  transmissao?: string;
   conceito: string;
   exemplo: string; // bloco de código de exemplo
   desafio: Desafio;
@@ -71,6 +76,8 @@ export const FASES: Fase[] = [
     emoji: "🧭",
     historia:
       "Antes de invadir qualquer sistema, o Netrunner traça a rota: uma sequência de passos que leva da porta de entrada até o núcleo de dados.",
+    transmissao:
+      "Regra número um, runner: ninguém entra num sistema no improviso. Antes de tocar na porta, você desenha a rota — passo a passo, na ordem. É isso que separa um profissional de um corpo no chão. Me mostra que você sabe traçar a sua.",
     conceito:
       "Um algoritmo é uma sequência de passos, em ordem, para resolver um problema. Como um roteiro de invasão: primeiro isto, depois aquilo. O computador executa os passos exatamente na ordem que você escreveu.",
     exemplo: `# Rota para invadir o servidor:
@@ -93,6 +100,8 @@ print("3. Baixar os dados")`,
     emoji: "💾",
     historia:
       "No deck do Netrunner, cada dado capturado precisa de um nome. Sem etiqueta, ele some no ruído da Rede.",
+    transmissao:
+      "Todo dado que você captura some no ruído se não tiver nome. No seu deck, você etiqueta cada coisa e guarda num registrador. Aprende a nomear o que é seu — vai precisar recuperar depois, no meio do fogo.",
     conceito:
       "Uma variável é como um dado guardado num registrador com um nome (etiqueta). Você guarda um valor num nome e depois usa esse nome para recuperar o valor.",
     exemplo: `# Guardando dados capturados no deck
@@ -116,6 +125,8 @@ print(creditos)`,
     emoji: "🧬",
     historia:
       "Nem todo dado é igual: uns são cadeias de texto, outros são números de potência, e alguns respondem apenas 'acesso' ou 'negado'.",
+    transmissao:
+      "Nem todo dado responde igual. Uns são texto, uns são número, uns só dizem sim ou não. Confundir o tipo é como puxar o fio errado: o sistema trava e te entrega. Aprende a diferença antes que ela te custe caro.",
     conceito:
       "Os valores têm tipos: texto (str) fica entre aspas, número inteiro (int) sem aspas, e booleano (bool) que é True ou False. O tipo define o que dá pra fazer com o valor.",
     exemplo: `codinome = "Netrunner"  # texto (str)
@@ -137,6 +148,8 @@ acesso_root = True      # booleano (bool)`,
     emoji: "🔐",
     historia:
       "Um firewall bloqueia o caminho. Se o runner tiver a credencial certa, passa. Se não tiver, é ejetado do sistema.",
+    transmissao:
+      "Firewall na sua frente. Ele só deixa passar quem tem a credencial certa — senão, te ejeta da conexão. Você vai ensinar seu código a decidir sozinho: se isso, faz aquilo; se não, faz outra coisa. É assim que runner escapa de armadilha.",
     conceito:
       "O if verifica uma condição. Se ela for verdadeira, executa um bloco. Senão (else), executa outro. É assim que o programa toma decisões.",
     exemplo: `tem_credencial = True
@@ -162,6 +175,8 @@ else:
     emoji: "🔁",
     historia:
       "Há 5 nós de segurança idênticos na rota. Em vez de escrever o mesmo bypass 5 vezes, o runner aprende a repetir.",
+    transmissao:
+      "Cinco nós de segurança idênticos na rota. Você não vai escrever o mesmo bypass cinco vezes como amador — vai mandar a máquina repetir por você. Trabalho repetido é trabalho de máquina. Guarda seu tempo pro que importa.",
     conceito:
       "Um laço repete ações. O for repete um número conhecido de vezes. range(3) gera 0, 1, 2 — ou seja, 3 repetições.",
     exemplo: `for i in range(3):
@@ -187,6 +202,8 @@ else:
     emoji: "⚙️",
     historia:
       "O runner grava um script que pode executar quantas vezes quiser, sem reescrever o exploit inteiro toda vez.",
+    transmissao:
+      "Achou um exploit que funciona? Grava. Runner esperto escreve o script uma vez e chama quantas vezes precisar, sem reescrever nada no meio da correria. Preguiça bem-feita é engenharia — o resto é desperdício.",
     conceito:
       "Uma função é um bloco de código com nome que você pode reutilizar. Define-se com def e chama-se pelo nome com parênteses.",
     exemplo: `def saudacao():
@@ -211,6 +228,8 @@ saudacao()`,
     emoji: "👾",
     historia:
       "Hora do ICE final! O runner junta tudo: registradores, condicionais, laços e funções — a IA-guardiã do núcleo tem quatro camadas de defesa, uma para cada coisa que você aprendeu.",
+    transmissao:
+      "Chegou a hora, runner. O núcleo é guardado por um ICE — uma IA-guardiã com quatro camadas, uma pra cada coisa que eu te ensinei: registrador, decisão, repetição, script. Junta tudo, na ordem. Se você aprendeu, ele cai. Se não... a gente nunca teve essa conversa.",
     conceito:
       "Um teste de verdade combina tudo que você já sabe. Vai precisar guardar estado numa variável, checar uma condição, repetir um laço e gravar uma função — nessa ordem, direto no terminal do deck.",
     exemplo: `poder = 8

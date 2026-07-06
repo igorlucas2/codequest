@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   papel ENUM('aluno','professor') NOT NULL DEFAULT 'aluno',
   moedas INT NOT NULL DEFAULT 30,
   avatar JSON NULL,
+  componentes JSON NULL,
   tour_visto TINYINT(1) NOT NULL DEFAULT 0,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -98,6 +99,10 @@ CREATE TABLE IF NOT EXISTS servidores (
   internet_ativa TINYINT(1) NOT NULL DEFAULT 0,
   layout_equipamentos JSON NULL,
   total_coletado INT NOT NULL DEFAULT 0,
+  servidor_ligado TINYINT(1) NOT NULL DEFAULT 0,
+  boot_finaliza_em DATETIME NULL,
+  ssh_usuario VARCHAR(32) NOT NULL DEFAULT 'runner',
+  patch_cord_conectado TINYINT(1) NOT NULL DEFAULT 0,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -109,6 +114,13 @@ CREATE TABLE IF NOT EXISTS apps_instalados (
   instalado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   ultima_coleta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_usuario_app (usuario_id, app_id),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notebook_workspaces (
+  usuario_id INT PRIMARY KEY,
+  dados JSON NOT NULL,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -142,6 +154,7 @@ CREATE TABLE IF NOT EXISTS duelos_pendentes (
 const MIGRACOES = [
   "ALTER TABLE usuarios ADD COLUMN moedas INT NOT NULL DEFAULT 30",
   "ALTER TABLE usuarios ADD COLUMN avatar JSON NULL",
+  "ALTER TABLE usuarios ADD COLUMN componentes JSON NULL",
   "ALTER TABLE servidores ADD COLUMN rede_ip VARCHAR(15) NULL",
   "ALTER TABLE servidores ADD COLUMN rede_mascara VARCHAR(15) NULL",
   "ALTER TABLE servidores ADD COLUMN rede_gateway VARCHAR(15) NULL",
@@ -154,6 +167,10 @@ const MIGRACOES = [
   "ALTER TABLE servidores ADD COLUMN internet_ativa TINYINT(1) NOT NULL DEFAULT 0",
   "ALTER TABLE servidores ADD COLUMN layout_equipamentos JSON NULL",
   "ALTER TABLE servidores ADD COLUMN total_coletado INT NOT NULL DEFAULT 0",
+  "ALTER TABLE servidores ADD COLUMN servidor_ligado TINYINT(1) NOT NULL DEFAULT 0",
+  "ALTER TABLE servidores ADD COLUMN boot_finaliza_em DATETIME NULL",
+  "ALTER TABLE servidores ADD COLUMN ssh_usuario VARCHAR(32) NOT NULL DEFAULT 'runner'",
+  "ALTER TABLE servidores ADD COLUMN patch_cord_conectado TINYINT(1) NOT NULL DEFAULT 0",
   "ALTER TABLE batalhas ADD KEY idx_vencedor (vencedor_id)",
   // Quem já tinha rede configurada antes da internet virar pré-requisito não
   // pode perder alcance de rede silenciosamente — considera "já contratada".
@@ -190,7 +207,7 @@ try {
   await conn.changeUser({ database: dbname });
   await conn.query(SCHEMA);
   console.log(
-    "Tabelas criadas/garantidas: usuarios, progresso, inventario, batalhas, invasoes, servidores, apps_instalados, duelos_pendentes",
+    "Tabelas criadas/garantidas: usuarios, progresso, inventario, batalhas, invasoes, servidores, apps_instalados, notebook_workspaces, duelos_pendentes",
   );
   await migrar(conn);
   await conn.end();

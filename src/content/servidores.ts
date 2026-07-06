@@ -17,6 +17,7 @@ export type ServidorTier = {
   corLed: string; // cor do LED no ServidorRack (paleta neon já usada no tema)
   redeTitulo: string; // moldura de onde/como esse tier vive na rede
   redeDescricao: string;
+  tempoBootSegundos: number; // tempo para subir o SO quando o servidor liga
 };
 
 export const SERVIDOR_TIERS: ServidorTier[] = [
@@ -32,6 +33,7 @@ export const SERVIDOR_TIERS: ServidorTier[] = [
     redeTitulo: "Rede doméstica",
     redeDescricao:
       "Ligado direto no roteador de casa, atrás de NAT — sem IP público próprio. Só é alcançado por quem está no mesmo setor da Rede.",
+    tempoBootSegundos: 24,
   },
   {
     id: "vps",
@@ -45,6 +47,7 @@ export const SERVIDOR_TIERS: ServidorTier[] = [
     redeTitulo: "Rede do provedor",
     redeDescricao:
       "Agora mora num datacenter de verdade, alugado de um provedor de nuvem — uma faixa de IP roteável de verdade dentro da rede dele.",
+    tempoBootSegundos: 18,
   },
   {
     id: "rack",
@@ -57,11 +60,12 @@ export const SERVIDOR_TIERS: ServidorTier[] = [
     corLed: "#ff2e63",
     redeTitulo: "Colocation — rack dedicado",
     redeDescricao:
-      "Fisicamente montado num rack, ligado num switch de topo de rack (ToR) que agrega o tráfego do corredor antes de sair pro backbone.",
+      "Fisicamente montado num rack, ligado num switch de topo de rack (ToR) que leva o tráfego para o uplink do datacenter.",
+    tempoBootSegundos: 12,
   },
   {
     id: "datacenter",
-    nome: "Data Center Blindado",
+    nome: "Datacenter Blindado",
     icone: "🏙️",
     preco: 900,
     capacidade: 9,
@@ -71,6 +75,7 @@ export const SERVIDOR_TIERS: ServidorTier[] = [
     redeTitulo: "Infraestrutura redundante",
     redeDescricao:
       "Múltiplos uplinks e switches em camadas garantem que o servidor nunca fica sem rota de saída — nem se um link inteiro cair.",
+    tempoBootSegundos: 8,
   },
 ];
 

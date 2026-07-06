@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { consultar } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
 import { sanitizarFicha, modificadoresDe } from "@/content/classes";
+import { sanitizarNiveis, velocidadeHardware } from "@/content/componentes";
 import { calcularStats } from "@/lib/stats";
 import { carregarInfraServidor, bonusDoTier, multiplicarPorFrota } from "@/lib/servidores";
 
@@ -11,10 +12,16 @@ export async function GET() {
   const u = await usuarioAtual();
   if (!u) return NextResponse.json({ usuario: null });
 
-  const [dados] = await consultar<{ moedas: number; avatar: unknown; tour_visto: number }>(
-    "SELECT moedas, avatar, tour_visto FROM usuarios WHERE id = ? LIMIT 1",
+  const [dados] = await consultar<{
+    moedas: number;
+    avatar: unknown;
+    tour_visto: number;
+    componentes: unknown;
+  }>(
+    "SELECT moedas, avatar, tour_visto, componentes FROM usuarios WHERE id = ? LIMIT 1",
     [u.id],
   );
+  const niveisComponentes = sanitizarNiveis(dados?.componentes);
 
   const progressoLinhas = await consultar<{ fase_ordem: number; xp: number }>(
     "SELECT fase_ordem, xp FROM progresso WHERE usuario_id = ?",
@@ -51,7 +58,8 @@ export async function GET() {
     progresso: { fasesConcluidas, xp },
     inventario,
     equipados,
-    stats: calcularStats(xp, equipados, mods),
+    componentes: niveisComponentes,
+    stats: calcularStats(xp, equipados, mods, velocidadeHardware(niveisComponentes)),
     tourVisto: dados?.tour_visto === 1,
   });
 }

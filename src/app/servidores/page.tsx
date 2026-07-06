@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import NavRpg from "@/components/NavRpg";
@@ -7,13 +8,12 @@ import Button from "@/components/ui/Button";
 import { SkeletonCartoes } from "@/components/Skeleton";
 import SalaDeEquipamentos from "@/components/SalaDeEquipamentos";
 import ServidorRede from "@/components/ServidorRede";
-import ServidorSistema from "@/components/ServidorSistema";
+import ServidorSistema, { type EstadoOperacionalServidorView } from "@/components/ServidorSistema";
 import { useSessao } from "@/components/Sessao";
 import { useToast } from "@/components/Toast";
-import type { ServidorTierId, ServidorTier } from "@/content/servidores";
-import type { App } from "@/content/apps";
-import type { SistemaOperacional, SistemaOperacionalId } from "@/content/sistemasOperacionais";
-import type { SwitchTier, SwitchTierId } from "@/content/switches";
+import type { ServidorTier, ServidorTierId } from "@/content/servidores";
+import type { SistemaOperacionalId } from "@/content/sistemasOperacionais";
+import type { SwitchTier } from "@/content/switches";
 
 type AppInstaladoView = {
   appId: string;
@@ -28,31 +28,36 @@ type Status = {
   tier: ServidorTierId;
   tierInfo: ServidorTier;
   proximoTier: ServidorTier | null;
-  custoUpgrade: number | null;
   capacidadeUsada: number;
   capacidadeTotal: number;
   apps: AppInstaladoView[];
-  catalogoApps: (App & { instalado: boolean })[];
   pendenteTotal: number;
   sistemaOperacional: SistemaOperacionalId | null;
   sshHabilitado: boolean;
-  catalogoSO: SistemaOperacional[];
   servidoresExtras: number;
   numeroTotalServidores: number;
-  custoNovaUnidade: number;
-  switchTier: SwitchTierId | null;
   switchInfo: SwitchTier | null;
-  catalogoSwitch: SwitchTier[];
   internetAtiva: boolean;
   layoutSalvo: unknown;
+  estadoOperacional: EstadoOperacionalServidorView;
 };
+
+type Aba = "operacao" | "sistema" | "rede" | "servicos";
+
+const ABAS: { id: Aba; rotulo: string; icone: string }[] = [
+  { id: "operacao", rotulo: "Operação", icone: "🏢" },
+  { id: "sistema", rotulo: "Sistema", icone: "💿" },
+  { id: "rede", rotulo: "Rede", icone: "🌐" },
+  { id: "servicos", rotulo: "Serviços", icone: "📦" },
+];
 
 export default function Servidores() {
   const router = useRouter();
-  const { carregado, usuario, moedas, stats, recarregar } = useSessao();
+  const { carregado, usuario, stats, recarregar } = useSessao();
   const { mostrar } = useToast();
   const [status, setStatus] = useState<Status | null>(null);
   const [processando, setProcessando] = useState<string | null>(null);
+  const [aba, setAba] = useState<Aba>("operacao");
 
   useEffect(() => {
     if (carregado && !usuario) router.replace("/entrar");
@@ -70,6 +75,12 @@ export default function Servidores() {
       .then((r) => r.json())
       .then((d) => setStatus(d));
   }, [usuario]);
+
+  useEffect(() => {
+    if (!status?.estadoOperacional.ligando) return;
+    const id = window.setInterval(carregarStatus, 1000);
+    return () => window.clearInterval(id);
+  }, [carregarStatus, status?.estadoOperacional.ligando]);
 
   async function acao(chave: string, url: string, body?: object) {
     setProcessando(chave);
@@ -93,40 +104,6 @@ export default function Servidores() {
     return null;
   }
 
-  async function coletar() {
-    const d = await acao("coletar", "/api/servidores/coletar");
-    if (d?.ok) {
-      if (d.coletado <= 0) {
-        mostrar("Nada pra coletar ainda.", "sucesso");
-      } else if (d.custoInternet > 0) {
-        mostrar(`+${d.coletado} ◈ líquidos (◈${d.bruto} bruto − ◈${d.custoInternet} de internet).`, "sucesso");
-      } else {
-        mostrar(`+${d.coletado} ◈ coletados!`, "sucesso");
-      }
-    }
-  }
-
-  async function upgrade() {
-    const d = await acao("upgrade", "/api/servidores/upgrade");
-    if (d?.ok) mostrar("Servidor atualizado!", "sucesso");
-  }
-
-  async function contratarInternet() {
-    const d = await acao("contratar-internet", "/api/servidores/internet/contratar");
-    if (d?.ok) mostrar("Internet contratada!", "sucesso");
-  }
-
-  async function comprarUnidade() {
-    const d = await acao("comprar-unidade", "/api/servidores/unidade/comprar");
-    if (d?.ok) mostrar("Novo servidor adicionado à frota!", "sucesso");
-  }
-
-  async function comprarSwitch(switchId: SwitchTierId) {
-    const d = await acao(`comprar-switch-${switchId}`, "/api/servidores/switch/comprar", { switchId });
-    if (d?.ok) mostrar("Switch instalado!", "sucesso");
-  }
-
-  // Silencioso (sem toast) — só um detalhe de UI, não uma ação de jogo.
   async function salvarLayout(layout: unknown) {
     await fetch("/api/servidores/layout", {
       method: "POST",
@@ -135,29 +112,42 @@ export default function Servidores() {
     });
   }
 
-  async function instalarApp(app: App) {
-    const d = await acao(`instalar-${app.id}`, "/api/servidores/apps/instalar", { appId: app.id });
-    if (d?.ok) mostrar(`${app.nome} instalado!`, "sucesso");
+  async function coletar() {
+    const d = await acao("coletar", "/api/servidores/coletar");
+    if (d?.ok) {
+      if (d.coletado <= 0) mostrar("Nada pra coletar ainda.", "sucesso");
+      else mostrar(`+${d.coletado} cr coletados.`, "sucesso");
+    }
   }
 
   async function removerApp(app: AppInstaladoView) {
     const d = await acao(`remover-${app.appId}`, "/api/servidores/apps/remover", { appId: app.appId });
-    if (d?.ok) mostrar(`${app.nome} removido${d.coletado > 0 ? ` (+${d.coletado} ◈ coletados)` : ""}.`, "sucesso");
+    if (d?.ok) mostrar(`${app.nome} removido${d.coletado > 0 ? ` (+${d.coletado} cr coletados)` : ""}.`, "sucesso");
   }
 
-  async function instalarSO(osId: SistemaOperacionalId) {
-    const d = await acao(`instalar-so-${osId}`, "/api/servidores/sistema/instalar", { osId });
-    if (d?.ok) mostrar("Sistema operacional instalado!", "sucesso");
+  async function energia(acaoEnergia: "ligar" | "desligar") {
+    const d = await acao(`energia-${acaoEnergia}`, "/api/servidores/energia", { acao: acaoEnergia });
+    if (d?.ok) mostrar(acaoEnergia === "ligar" ? "Servidor iniciando." : "Servidor desligado.", "sucesso");
   }
 
   async function habilitarSsh() {
     const d = await acao("habilitar-ssh", "/api/servidores/sistema/habilitar-ssh");
-    if (d?.ok) mostrar("SSH ativado!", "sucesso");
+    if (d?.ok) mostrar("SSH ativado.", "sucesso");
+  }
+
+  async function salvarUsuarioSsh(usuarioSsh: string) {
+    const d = await acao("salvar-usuario-ssh", "/api/servidores/sistema/acesso", { usuarioSsh });
+    if (d?.ok) mostrar("Usuário SSH atualizado.", "sucesso");
+  }
+
+  async function patchCord(conectado: boolean) {
+    const d = await acao("patch-cord", "/api/servidores/rede/patch-cord", { conectado });
+    if (d?.ok) mostrar(conectado ? "Patch cord conectado." : "Patch cord removido.", "sucesso");
   }
 
   if (!carregado || !usuario || !status) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-10">
+      <main className="mx-auto max-w-5xl px-6 py-10">
         <NavRpg />
         <div className="mt-8">
           <SkeletonCartoes quantidade={4} />
@@ -167,252 +157,188 @@ export default function Servidores() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-6 py-10">
       <NavRpg />
 
-      <header className="mt-6">
-        <h1 className="titulo text-3xl font-black text-ouro">Seu Servidor</h1>
-        <p className="text-texto-suave">
-          Construa sua infraestrutura, instale apps e colha créditos. É esse
-          servidor que os outros runners tentam invadir na Arena.
-        </p>
+      <header className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="titulo text-3xl font-black text-ouro">Seu Datacenter</h1>
+          <p className="max-w-3xl text-texto-suave">
+            Operar servidor agora é ciclo de vida: desligar para hardware, ligar para subir o SO,
+            configurar rede, liberar SSH e rodar serviços.
+          </p>
+        </div>
+        <Link
+          href="/loja"
+          className="rounded-xl border border-borda bg-fundo-card px-4 py-2 text-sm font-semibold text-destaque transition hover:border-destaque"
+        >
+          Abrir Mercado
+        </Link>
       </header>
 
-      {/* Navegação rápida — a página cresceu bastante (rack, rede, SO, apps,
-          catálogo); em vez de virar abas (perderia a leitura contínua de
-          cima a baixo), estes são atalhos de rolagem pras seções mais longas. */}
-      <nav className="mt-4 flex flex-wrap gap-2 text-xs">
-        <a href="#secao-rede" className="rounded-lg bg-fundo-card px-3 py-1.5 font-semibold text-texto-suave transition hover:text-texto">
-          🌐 Rede
-        </a>
-        <a href="#secao-sistema" className="rounded-lg bg-fundo-card px-3 py-1.5 font-semibold text-texto-suave transition hover:text-texto">
-          💿 Sistema
-        </a>
-        <a href="#secao-economia" className="rounded-lg bg-fundo-card px-3 py-1.5 font-semibold text-texto-suave transition hover:text-texto">
-          💰 Economia
-        </a>
+      <nav className="mt-5 flex flex-wrap gap-2">
+        {ABAS.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setAba(item.id)}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              aba === item.id
+                ? "bg-primaria/20 text-primaria"
+                : "bg-fundo-card text-texto-suave hover:text-texto"
+            }`}
+          >
+            <span className="mr-1">{item.icone}</span>
+            {item.rotulo}
+          </button>
+        ))}
       </nav>
 
-      {/* Sala de Equipamentos */}
-      <section className="cartao mt-6 rounded-2xl p-6">
-        <SalaDeEquipamentos
-          tier={status.tier}
-          numeroTotalServidores={status.numeroTotalServidores}
-          capacidadeUsadaTotal={status.capacidadeUsada}
-          capacidadePorUnidade={status.tierInfo.capacidade}
-          internetAtiva={status.internetAtiva}
-          switchPortas={status.switchInfo?.portas ?? null}
-          layoutSalvo={status.layoutSalvo}
-          onSalvarLayout={salvarLayout}
-        />
-        <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          <div className="flex-1 text-center sm:text-left">
-            <p className="titulo text-xl font-bold">
-              {status.tierInfo.icone} {status.tierInfo.nome}
-              {status.numeroTotalServidores > 1 && (
-                <span className="ml-2 text-sm font-normal text-texto-suave">
-                  × {status.numeroTotalServidores} servidores
-                </span>
-              )}
-            </p>
-            <p className="mt-1 text-sm text-texto-suave">
-              Capacidade: {status.capacidadeUsada}/{status.capacidadeTotal} ·{" "}
-              🧱 +{status.tierInfo.bonusDefesa * status.numeroTotalServidores} firewall · 🧬 +
-              {status.tierInfo.bonusVida * status.numeroTotalServidores} integridade
-            </p>
+      {aba === "operacao" && (
+        <section className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+          <div className="cartao rounded-2xl p-5">
+            <SalaDeEquipamentos
+              tier={status.tier}
+              numeroTotalServidores={status.numeroTotalServidores}
+              capacidadeUsadaTotal={status.capacidadeUsada}
+              capacidadePorUnidade={status.tierInfo.capacidade}
+              internetAtiva={status.internetAtiva}
+              switchPortas={status.switchInfo?.portas ?? null}
+              layoutSalvo={status.layoutSalvo}
+              onSalvarLayout={salvarLayout}
+            />
+          </div>
 
-            {status.proximoTier && status.custoUpgrade !== null ? (
-              <div className="mt-4 rounded-xl border border-borda bg-fundo p-3">
-                <p className="text-sm">
-                  Próximo: <span className="font-semibold">{status.proximoTier.icone} {status.proximoTier.nome}</span>{" "}
-                  — capacidade {status.proximoTier.capacidade}, 🧱 +{status.proximoTier.bonusDefesa}, 🧬 +
-                  {status.proximoTier.bonusVida} (por servidor)
-                </p>
-                <Button
-                  tamanho="sm"
-                  onClick={upgrade}
-                  disabled={processando !== null || moedas < status.custoUpgrade}
-                  carregando={processando === "upgrade"}
-                  className="mt-2"
-                >
-                  Upgrade da frota por ◈ {status.custoUpgrade}
-                </Button>
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-ouro">🏆 Servidor no tier máximo!</p>
-            )}
-
-            <div className="mt-4 rounded-xl border border-borda bg-fundo p-3">
-              <p className="text-sm">Adicionar servidor idêntico à frota</p>
-              <Button
-                tamanho="sm"
-                onClick={comprarUnidade}
-                disabled={processando !== null || moedas < status.custoNovaUnidade}
-                carregando={processando === "comprar-unidade"}
-                className="mt-2"
-              >
-                ➕ Novo servidor por ◈ {status.custoNovaUnidade}
-              </Button>
-              {status.numeroTotalServidores > 1 && !status.switchInfo && (
-                <p className="mt-1 text-[11px] text-erro">
-                  ⚠️ Sem switch — sua frota atual não deveria existir sem um. Compre um abaixo.
-                </p>
-              )}
+          <aside className="space-y-3">
+            <PainelResumo titulo="Estado" valor={rotuloEstado(status.estadoOperacional)} />
+            <PainelResumo
+              titulo="Hardware"
+              valor={`${status.tierInfo.icone} ${status.tierInfo.nome}`}
+              detalhe={`${status.numeroTotalServidores} servidor(es), ${status.switchInfo ? status.switchInfo.nome : "sem switch"}`}
+            />
+            <PainelResumo
+              titulo="Capacidade"
+              valor={`${status.capacidadeUsada}/${status.capacidadeTotal}`}
+              detalhe="Apps instalados consomem essa capacidade."
+            />
+            <PainelResumo
+              titulo="Rede física"
+              valor={status.estadoOperacional.patchCordConectado ? "Patch cord conectado" : "Patch cord solto"}
+              detalhe={status.internetAtiva ? "Internet contratada" : "Sem internet contratada"}
+            />
+            <div className="cartao rounded-2xl p-4 text-sm text-texto-suave">
+              Upgrades, switches, sistemas operacionais e apps novos ficam no Mercado. O Datacenter fica só com operação.
             </div>
-          </div>
-        </div>
+          </aside>
+        </section>
+      )}
 
-        {/* Switch */}
-        <div className="mt-6 border-t border-borda pt-4">
-          <p className="text-sm font-semibold text-ouro">🔀 Switch</p>
-          <p className="mt-1 text-xs text-texto-suave">
-            {status.switchInfo
-              ? `Instalado: ${status.switchInfo.nome} (${status.switchInfo.portas} portas).`
-              : "Necessário a partir do 2º servidor — conecta sua frota inteira."}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            {status.catalogoSwitch
-              .filter((sw) => sw.id !== status.switchTier)
-              .map((sw) => (
-                <div key={sw.id} className="cartao flex items-center gap-2 rounded-xl p-3">
-                  <span className="text-xl">{sw.icone}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{sw.nome}</p>
-                    <p className="text-[11px] text-texto-suave">{sw.portas} portas</p>
-                  </div>
-                  <Button
-                    tamanho="sm"
-                    disabled={processando !== null || moedas < sw.preco}
-                    carregando={processando === `comprar-switch-${sw.id}`}
-                    onClick={() => comprarSwitch(sw.id)}
-                  >
-                    ◈ {sw.preco}
-                  </Button>
-                </div>
-              ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Rede */}
-      <section id="secao-rede" className="mt-8 scroll-mt-6">
-        <h2 className="titulo text-lg font-bold text-ouro">🌐 Rede</h2>
-        <p className="mt-1 text-sm text-texto-suave">
-          Configure a identidade de rede do seu servidor — sem isso, você só alcança quem está no seu setor.
-        </p>
-        <div className="mt-3">
-          <ServidorRede
-            tier={status.tier}
-            internetAtiva={status.internetAtiva}
-            contratandoInternet={processando === "contratar-internet"}
-            onContratarInternet={contratarInternet}
-          />
-        </div>
-      </section>
-
-      {/* Sistema Operacional */}
-      <section id="secao-sistema" className="mt-8 scroll-mt-6">
-        <h2 className="titulo text-lg font-bold text-ouro">💿 Sistema Operacional</h2>
-        <p className="mt-1 text-sm text-texto-suave">
-          Instale um SO no servidor pra poder acessá-lo via SSH pelo seu computador.
-        </p>
-        <div className="mt-3">
+      {aba === "sistema" && (
+        <section className="mt-6">
           <ServidorSistema
             sistemaOperacional={status.sistemaOperacional}
             sshHabilitado={status.sshHabilitado}
-            catalogo={status.catalogoSO}
-            moedas={moedas}
+            estadoOperacional={status.estadoOperacional}
             processando={processando}
             velocidade={stats.velocidade}
-            onInstalar={instalarSO}
+            onLigar={() => energia("ligar")}
+            onDesligar={() => energia("desligar")}
+            onSalvarUsuarioSsh={salvarUsuarioSsh}
             onHabilitarSsh={habilitarSsh}
           />
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Coletar */}
-      <section id="secao-economia" className="cartao cartao-ouro mt-8 flex scroll-mt-6 items-center justify-between rounded-2xl p-5">
-        <div>
-          <p className="text-sm font-semibold text-ouro">💰 Renda acumulada</p>
-          <p className="text-xs text-texto-suave">Apps rendem enquanto instalados (teto de 12h sem coletar).</p>
-        </div>
-        <Button
-          variante="sucesso"
-          onClick={coletar}
-          disabled={processando !== null || status.pendenteTotal <= 0}
-          carregando={processando === "coletar"}
-        >
-          Coletar ◈ {status.pendenteTotal}
-        </Button>
-      </section>
+      {aba === "rede" && (
+        <section className="mt-6">
+          <ServidorRede
+            tier={status.tier}
+            sistemaOperacional={status.sistemaOperacional}
+            online={status.estadoOperacional.online}
+            ligando={status.estadoOperacional.ligando}
+            patchCordConectado={status.estadoOperacional.patchCordConectado}
+            conectandoPatchCord={processando === "patch-cord"}
+            internetAtiva={status.internetAtiva}
+            contratandoInternet={processando === "contratar-internet"}
+            onPatchCord={patchCord}
+            onContratarInternet={() => acao("contratar-internet", "/api/servidores/internet/contratar")}
+          />
+        </section>
+      )}
 
-      {/* Apps instalados */}
-      <section className="mt-8">
-        <h2 className="titulo text-lg font-bold text-ouro">Apps instalados</h2>
-        {status.apps.length === 0 ? (
-          <p className="cartao mt-3 rounded-2xl p-6 text-center text-texto-suave">
-            Nenhum app rodando ainda. Instale um abaixo pra começar a render créditos.
-          </p>
-        ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {status.apps.map((a) => (
-              <div key={a.appId} className="cartao flex items-center gap-3 rounded-xl p-3">
-                <span className="text-2xl">{a.icone}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{a.nome}</p>
-                  <p className="text-xs text-texto-suave">
-                    +{a.crPorHora} cr/h · pendente: {a.pendente} ◈
-                  </p>
-                </div>
-                <Button
-                  variante="perigo"
-                  tamanho="sm"
-                  disabled={processando !== null}
-                  carregando={processando === `remover-${a.appId}`}
-                  onClick={() => removerApp(a)}
-                >
-                  Remover
-                </Button>
-              </div>
-            ))}
+      {aba === "servicos" && (
+        <section className="mt-6 space-y-5">
+          <div className="cartao cartao-ouro flex flex-col gap-3 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-ouro">Renda acumulada</p>
+              <p className="text-xs text-texto-suave">Apps instalados rendem créditos até o teto de 12h sem coletar.</p>
+            </div>
+            <Button
+              variante="sucesso"
+              onClick={coletar}
+              disabled={processando !== null || status.pendenteTotal <= 0}
+              carregando={processando === "coletar"}
+            >
+              Coletar {status.pendenteTotal} cr
+            </Button>
           </div>
-        )}
-      </section>
 
-      {/* Catálogo de apps */}
-      <section className="mt-8">
-        <h2 className="titulo text-lg font-bold text-ouro">Catálogo de apps</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {status.catalogoApps
-            .filter((a) => !a.instalado)
-            .map((a) => {
-              const capacidadeInsuficiente =
-                status.capacidadeUsada + a.capacidade > status.capacidadeTotal;
-              const semSaldo = moedas < a.preco;
-              return (
-                <div key={a.id} className="cartao flex items-center gap-3 rounded-xl p-3">
-                  <span className="text-2xl">{a.icone}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{a.nome}</p>
-                    <p className="text-xs text-texto-suave">{a.descricao}</p>
-                    <p className="text-xs text-texto-suave">
-                      +{a.crPorHora} cr/h · custa {a.capacidade} de capacidade
-                    </p>
+          <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="titulo text-lg font-bold text-ouro">Apps instalados</h2>
+                <p className="text-sm text-texto-suave">Instalação de apps novos fica no Mercado.</p>
+              </div>
+              <Link href="/loja" className="text-sm font-semibold text-destaque hover:underline">
+                Comprar apps
+              </Link>
+            </div>
+            {status.apps.length === 0 ? (
+              <p className="cartao mt-3 rounded-2xl p-6 text-center text-texto-suave">
+                Nenhum app rodando ainda.
+              </p>
+            ) : (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {status.apps.map((app) => (
+                  <div key={app.appId} className="cartao flex items-center gap-3 rounded-xl p-3">
+                    <span className="text-2xl">{app.icone}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{app.nome}</p>
+                      <p className="text-xs text-texto-suave">
+                        +{app.crPorHora} cr/h · pendente: {app.pendente} cr · capacidade {app.capacidade}
+                      </p>
+                    </div>
+                    <Button
+                      variante="perigo"
+                      tamanho="sm"
+                      disabled={processando !== null}
+                      carregando={processando === `remover-${app.appId}`}
+                      onClick={() => removerApp(app)}
+                    >
+                      Remover
+                    </Button>
                   </div>
-                  <Button
-                    tamanho="sm"
-                    disabled={processando !== null || capacidadeInsuficiente || semSaldo}
-                    carregando={processando === `instalar-${a.id}`}
-                    onClick={() => instalarApp(a)}
-                    title={capacidadeInsuficiente ? "Capacidade do servidor insuficiente" : semSaldo ? "Créditos insuficientes" : ""}
-                  >
-                    ◈ {a.preco}
-                  </Button>
-                </div>
-              );
-            })}
-        </div>
-      </section>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
     </main>
+  );
+}
+
+function rotuloEstado(estado: EstadoOperacionalServidorView) {
+  if (estado.online) return "Ligado";
+  if (estado.ligando) return "Inicializando";
+  return "Desligado";
+}
+
+function PainelResumo({ titulo, valor, detalhe }: { titulo: string; valor: string; detalhe?: string }) {
+  return (
+    <div className="cartao rounded-2xl p-4">
+      <p className="text-xs font-semibold uppercase text-texto-suave">{titulo}</p>
+      <p className="mt-1 font-semibold text-texto">{valor}</p>
+      {detalhe && <p className="mt-1 text-xs text-texto-suave">{detalhe}</p>}
+    </div>
   );
 }

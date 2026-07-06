@@ -26,18 +26,21 @@ export function statsBase(nivel: number) {
 }
 
 // Calcula os stats finais a partir do XP, dos itens equipados e dos
-// modificadores de classe/raça.
+// modificadores de classe/raça. `bonusVelocidade` vem dos níveis de hardware
+// do deck (ver content/componentes.ts) — entra só no eixo de velocidade, fora
+// do poder de combate. Padrão 0 mantém compatível quem não passa hardware.
 export function calcularStats(
   xp: number,
   itensEquipados: string[],
   mods: Atributos = {},
+  bonusVelocidade = 0,
 ): Stats {
   const nivel = nivelPorXp(xp);
   const base = statsBase(nivel);
   let vida = base.vida + (mods.vida ?? 0);
   let ataque = base.ataque + (mods.ataque ?? 0);
   let defesa = base.defesa + (mods.defesa ?? 0);
-  let velocidade = base.velocidade;
+  let velocidade = base.velocidade + bonusVelocidade;
 
   for (const id of itensEquipados) {
     const item = getItem(id);

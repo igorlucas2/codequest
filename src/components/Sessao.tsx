@@ -9,6 +9,7 @@ import {
 } from "react";
 import { FASES } from "@/content/trilha1";
 import { FICHA_PADRAO, type Ficha } from "@/content/classes";
+import { NIVEIS_INICIAIS, type NiveisComponentes } from "@/content/componentes";
 import { calcularStats, type Stats } from "@/lib/stats";
 import { limparEstadoDesktopPersistido } from "@/components/desktop/persistenciaDesktop";
 import type { EnvioDesafio } from "@/lib/tiposTrilha";
@@ -31,6 +32,7 @@ type Contexto = {
   progresso: Progresso;
   inventario: ItemInv[];
   equipados: string[];
+  componentes: NiveisComponentes;
   stats: Stats;
   nivel: number;
   totalConcluidas: number;
@@ -43,6 +45,7 @@ type Contexto = {
   temItem: (itemId: string) => boolean;
   itemEquipado: (itemId: string) => boolean;
   comprar: (itemId: string) => Promise<{ ok: boolean; erro?: string }>;
+  melhorarComponente: (componenteId: string) => Promise<{ ok: boolean; erro?: string }>;
   equipar: (itemId: string, equipar: boolean) => Promise<void>;
   salvarFicha: (ficha: Ficha) => Promise<void>;
   marcarTourVisto: () => Promise<void>;
@@ -60,6 +63,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   const [progresso, setProgresso] = useState<Progresso>(VAZIO);
   const [inventario, setInventario] = useState<ItemInv[]>([]);
   const [equipados, setEquipados] = useState<string[]>([]);
+  const [componentes, setComponentes] = useState<NiveisComponentes>(NIVEIS_INICIAIS);
   const [stats, setStats] = useState<Stats>(calcularStats(0, []));
   const [tourVisto, setTourVisto] = useState(true);
 
@@ -73,6 +77,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
       setProgresso(d.progresso ?? VAZIO);
       setInventario(d.inventario ?? []);
       setEquipados(d.equipados ?? []);
+      setComponentes(d.componentes ?? NIVEIS_INICIAIS);
       setStats(d.stats ?? calcularStats(0, []));
       setTourVisto(d.tourVisto ?? true);
     } catch {
@@ -109,6 +114,20 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ itemId }),
       });
       const d = await res.json();
+      await recarregar();
+      return { ok: res.ok, erro: d.erro as string | undefined };
+    },
+    [recarregar],
+  );
+
+  const melhorarComponente = useCallback(
+    async (componenteId: string) => {
+      const res = await fetch("/api/computador/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ componenteId }),
+      });
+      const d = await res.json().catch(() => ({}));
       await recarregar();
       return { ok: res.ok, erro: d.erro as string | undefined };
     },
@@ -177,6 +196,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     progresso,
     inventario,
     equipados,
+    componentes,
     stats,
     nivel: stats.nivel,
     totalConcluidas: progresso.fasesConcluidas.length,
@@ -189,6 +209,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     temItem,
     itemEquipado,
     comprar,
+    melhorarComponente,
     equipar,
     salvarFicha,
     marcarTourVisto,
