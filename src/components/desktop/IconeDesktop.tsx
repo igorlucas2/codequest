@@ -52,7 +52,9 @@ export default function IconeDesktop({
         title={`Abrir ${rotulo}`}
         aria-label={`Abrir ${rotulo}`}
       >
-        <span className="icone-desktop-emoji">{icone}</span>
+        <span className="icone-desktop-emoji">
+          {icone === "msn" ? <span className="msn-program-icon msn-program-icon--desktop" /> : icone}
+        </span>
         <span className="icone-desktop-rotulo">{rotulo}</span>
       </button>
 

@@ -11,7 +11,10 @@ import { FASES } from "@/content/trilha1";
 import { FICHA_PADRAO, type Ficha } from "@/content/classes";
 import { NIVEIS_INICIAIS, type NiveisComponentes } from "@/content/componentes";
 import { calcularStats, type Stats } from "@/lib/stats";
-import { limparEstadoDesktopPersistido } from "@/components/desktop/persistenciaDesktop";
+import {
+  lerEstadoEnergiaSalvo,
+  limparEstadoDesktopPersistido,
+} from "@/components/desktop/persistenciaDesktop";
 import type { EnvioDesafio } from "@/lib/tiposTrilha";
 
 export type Usuario = {
@@ -22,7 +25,8 @@ export type Usuario = {
 };
 
 type ItemInv = { itemId: string; equipado: boolean };
-type Progresso = { fasesConcluidas: number[]; xp: number };
+type EventoProgresso = { faseOrdem: number; xp: number; concluidaEm: string | null };
+type Progresso = { fasesConcluidas: number[]; xp: number; historico: EventoProgresso[] };
 
 type Contexto = {
   carregado: boolean;
@@ -52,7 +56,7 @@ type Contexto = {
   sair: () => Promise<void>;
 };
 
-const VAZIO: Progresso = { fasesConcluidas: [], xp: 0 };
+const VAZIO: Progresso = { fasesConcluidas: [], xp: 0, historico: [] };
 const Ctx = createContext<Contexto | null>(null);
 
 export function SessaoProvider({ children }: { children: React.ReactNode }) {
@@ -122,6 +126,9 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
 
   const melhorarComponente = useCallback(
     async (componenteId: string) => {
+      if (lerEstadoEnergiaSalvo() !== "desligado") {
+        return { ok: false, erro: "Desligue o computador para trocar hardware." };
+      }
       const res = await fetch("/api/computador/upgrade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSessao } from "@/components/Sessao";
+import { limparEstadoDesktopPersistido } from "@/components/desktop/persistenciaDesktop";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
@@ -42,8 +43,9 @@ export default function Entrar() {
       }
 
       await recarregar();
+      limparEstadoDesktopPersistido();
       const professor = dados.usuario?.papel === "professor";
-      router.replace(professor ? "/professor" : "/trilha");
+      router.replace(professor ? "/professor" : "/computador");
     } catch {
       setErro("Não consegui falar com o servidor. O banco está rodando?");
     } finally {

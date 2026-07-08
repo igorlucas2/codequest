@@ -69,7 +69,7 @@ export default function Taskbar({
                     setMenuAberto(false);
                   }}
                 >
-                  <span className="mr-2">{p.icone}</span>
+                  <span className="mr-2">{p.icone === "msn" ? <MsnIconePequeno /> : p.icone}</span>
                   {p.rotulo}
                 </button>
               ))}
@@ -94,7 +94,7 @@ export default function Taskbar({
               }`}
               onClick={() => onClicarJanela(j)}
             >
-              <span className="mr-1">{j.icone}</span>
+              <span className="mr-1">{j.icone === "msn" ? <MsnIconePequeno /> : j.icone}</span>
               <span className="taskbar-item-texto">{j.titulo}</span>
             </button>
           ))}
@@ -103,6 +103,10 @@ export default function Taskbar({
       <Relogio geracao={geracao} />
     </div>
   );
+}
+
+function MsnIconePequeno() {
+  return <span className="msn-program-icon msn-program-icon--small" aria-hidden="true" />;
 }
 
 function Relogio({ geracao }: { geracao: GeracaoPcId }) {

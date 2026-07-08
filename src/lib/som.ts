@@ -6,6 +6,8 @@
 // ter interagido, criamos/retomamos sob demanda e ignoramos falhas em
 // silêncio (é só um efeito cosmético, não pode quebrar o jogo).
 
+import type { GeracaoPcId } from "@/content/geracoesPc";
+
 let contexto: AudioContext | null = null;
 
 function obterContexto(): AudioContext | null {
@@ -41,6 +43,23 @@ function tocarTom(frequencia: number, duracaoMs: number, tipo: OscillatorType = 
   }
 }
 
+type Nota = {
+  frequencia: number;
+  duracao: number;
+  atraso?: number;
+  tipo?: OscillatorType;
+  volume?: number;
+};
+
+function tocarSequencia(notas: Nota[]) {
+  notas.forEach((nota) => {
+    setTimeout(
+      () => tocarTom(nota.frequencia, nota.duracao, nota.tipo ?? "sine", nota.volume ?? 0.12),
+      nota.atraso ?? 0,
+    );
+  });
+}
+
 export function tocarAcerto() {
   tocarTom(880, 90, "triangle");
 }
@@ -61,7 +80,67 @@ export function tocarDerrota() {
 }
 
 // Bipe curto de "ligando" ao concluir o boot do desktop emulado.
-export function tocarBoot() {
-  tocarTom(440, 90, "sine", 0.1);
-  setTimeout(() => tocarTom(660, 140, "sine", 0.1), 90);
+export function tocarPower(geracao: GeracaoPcId = "win98") {
+  if (geracao === "neon") {
+    tocarSequencia([
+      { frequencia: 120, duracao: 70, tipo: "square", volume: 0.08 },
+      { frequencia: 980, duracao: 90, atraso: 80, tipo: "triangle", volume: 0.08 },
+    ]);
+    return;
+  }
+
+  tocarSequencia([
+    { frequencia: 85, duracao: 80, tipo: "square", volume: 0.09 },
+    { frequencia: 220, duracao: 80, atraso: 90, tipo: "triangle", volume: 0.08 },
+  ]);
+}
+
+export function tocarBoot(geracao: GeracaoPcId = "win98") {
+  if (geracao === "xp") {
+    tocarSequencia([
+      { frequencia: 330, duracao: 90, tipo: "sine", volume: 0.08 },
+      { frequencia: 523, duracao: 120, atraso: 90, tipo: "sine", volume: 0.08 },
+    ]);
+    return;
+  }
+  if (geracao === "neon") {
+    tocarSequencia([
+      { frequencia: 540, duracao: 70, tipo: "triangle", volume: 0.07 },
+      { frequencia: 720, duracao: 70, atraso: 75, tipo: "triangle", volume: 0.07 },
+      { frequencia: 940, duracao: 120, atraso: 150, tipo: "triangle", volume: 0.07 },
+    ]);
+    return;
+  }
+
+  tocarSequencia([
+    { frequencia: 440, duracao: 90, tipo: "sine", volume: 0.1 },
+    { frequencia: 660, duracao: 140, atraso: 90, tipo: "sine", volume: 0.1 },
+  ]);
+}
+
+export function tocarLogin(geracao: GeracaoPcId = "win98") {
+  if (geracao === "xp") {
+    tocarSequencia([
+      { frequencia: 392, duracao: 170, tipo: "triangle", volume: 0.08 },
+      { frequencia: 494, duracao: 170, atraso: 140, tipo: "triangle", volume: 0.08 },
+      { frequencia: 659, duracao: 260, atraso: 280, tipo: "triangle", volume: 0.08 },
+      { frequencia: 784, duracao: 320, atraso: 430, tipo: "sine", volume: 0.06 },
+    ]);
+    return;
+  }
+  if (geracao === "neon") {
+    tocarSequencia([
+      { frequencia: 262, duracao: 110, tipo: "sawtooth", volume: 0.05 },
+      { frequencia: 524, duracao: 130, atraso: 120, tipo: "triangle", volume: 0.07 },
+      { frequencia: 1048, duracao: 220, atraso: 260, tipo: "sine", volume: 0.07 },
+    ]);
+    return;
+  }
+
+  tocarSequencia([
+    { frequencia: 330, duracao: 160, tipo: "triangle", volume: 0.08 },
+    { frequencia: 440, duracao: 160, atraso: 130, tipo: "triangle", volume: 0.08 },
+    { frequencia: 554, duracao: 220, atraso: 260, tipo: "triangle", volume: 0.08 },
+    { frequencia: 660, duracao: 300, atraso: 430, tipo: "sine", volume: 0.06 },
+  ]);
 }

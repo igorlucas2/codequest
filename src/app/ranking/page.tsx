@@ -105,7 +105,10 @@ export default function Ranking() {
                       classe={l.ficha.classe}
                       corPele={l.ficha.corPele}
                       corPrincipal={l.ficha.corPrincipal}
+                      avatarModo={l.ficha.avatarModo}
+                      fotoUrl={l.ficha.fotoUrl}
                       tamanho={40}
+                      className="rounded-md"
                     />
                   </div>
                   <div className="min-w-0 flex-1">

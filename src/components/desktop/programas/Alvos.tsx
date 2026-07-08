@@ -87,7 +87,10 @@ export default function Alvos({
                 classe={op.ficha.classe}
                 corPele={op.ficha.corPele}
                 corPrincipal={op.ficha.corPrincipal}
+                avatarModo={op.ficha.avatarModo}
+                fotoUrl={op.ficha.fotoUrl}
                 tamanho={36}
+                className="rounded-md"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold">{op.nome}</p>

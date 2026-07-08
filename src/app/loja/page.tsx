@@ -68,7 +68,7 @@ type Aba = "software" | "hardware" | "datacenter" | "apps";
 
 const ABAS: { id: Aba; rotulo: string; descricao: string }[] = [
   { id: "software", rotulo: "Software", descricao: "Exploit, firewall e protocolos de invasão." },
-  { id: "hardware", rotulo: "Hardware", descricao: "Deck, RAM e peças do computador." },
+  { id: "hardware", rotulo: "Hardware", descricao: "Deck, RAM, peças e mídias do computador." },
   { id: "datacenter", rotulo: "Datacenter", descricao: "Servidor, switch e sistema operacional." },
   { id: "apps", rotulo: "Apps", descricao: "Serviços que rodam no seu servidor." },
 ];
@@ -193,7 +193,7 @@ export default function Loja() {
 
       {aba === "hardware" && (
         <GrupoItens
-          tipos={["notebook", "ram", "peca"]}
+          tipos={["notebook", "ram", "peca", "midia"]}
           reduzido={reduzido}
           processando={processando}
           moedas={moedas}
@@ -462,8 +462,11 @@ function GrupoItens({
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {ITENS.filter((item) => item.tipo === slot.tipo && !item.exclusivo).map((item, i) => {
               const possui = temItem(item.id);
+              const midia = item.tipo === "midia";
               const equipadoAgora = possui && itemEquipado(item.id);
-              const equipadoNoSlot = ITENS.find((candidato) => candidato.tipo === item.tipo && itemEquipado(candidato.id));
+              const equipadoNoSlot = midia
+                ? undefined
+                : ITENS.find((candidato) => candidato.tipo === item.tipo && itemEquipado(candidato.id));
               const podeComprar = moedas >= item.preco;
               const ocupado = processando === item.id;
               const deltas = compararComEquipado(item, equipadoNoSlot);
@@ -496,7 +499,9 @@ function GrupoItens({
                       </p>
                     )}
                   </div>
-                  {equipadoAgora ? (
+                  {midia && possui ? (
+                    <span className="shrink-0 text-xs font-semibold text-sucesso">Na mochila</span>
+                  ) : equipadoAgora ? (
                     <span className="shrink-0 text-xs font-semibold text-sucesso">Equipado</span>
                   ) : possui ? (
                     <Button tamanho="sm" carregando={ocupado} onClick={() => onEquipar(item)}>
@@ -556,6 +561,7 @@ function CardMercado({
 }
 
 function descreverAtributos(item: Item) {
+  if (item.tipo === "midia") return "Midia de instalacao para boot e reinstalacao do computador.";
   const p: string[] = [];
   if (item.atributos.ataque) p.push(`+${item.atributos.ataque} 💉`);
   if (item.atributos.defesa) p.push(`+${item.atributos.defesa} 🧱`);

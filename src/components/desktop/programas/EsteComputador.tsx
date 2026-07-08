@@ -10,7 +10,8 @@ import {
   nivelDe,
   type ComponenteId,
 } from "@/content/componentes";
-import { atrasoConexaoMs, duracaoBootMs } from "@/lib/velocidade";
+import { atrasoConexaoMs, duracaoBootMelhorMs, duracaoBootMs, duracaoBootPiorMs } from "@/lib/velocidade";
+import type { EstadoSistemaOperacional } from "@/components/desktop/persistenciaDesktop";
 
 const ESTILO: Record<
   GeracaoPcId,
@@ -66,13 +67,21 @@ function desempenhoPorTempo(ms: number, pior: number, melhor: number) {
   return Math.max(8, Math.min(100, Math.round(((pior - ms) / faixa) * 100)));
 }
 
-export default function EsteComputador({ geracao }: { geracao: GeracaoPcId }) {
+export default function EsteComputador({
+  geracao,
+  sistemaOperacional,
+  possuiMidiaInstalacao = false,
+}: {
+  geracao: GeracaoPcId;
+  sistemaOperacional?: EstadoSistemaOperacional;
+  possuiMidiaInstalacao?: boolean;
+}) {
   const { equipados, stats, componentes } = useSessao();
   const notebook = ITENS.find((i) => i.tipo === "notebook" && equipados.includes(i.id));
   const info = getGeracaoPc(geracao);
   const estilo = ESTILO[geracao];
   const atraso = atrasoConexaoMs(stats.velocidade);
-  const boot = duracaoBootMs(stats.velocidade);
+  const boot = duracaoBootMs(stats.velocidade, geracao);
   const discoCapacidade = capacidadeDisco(componentes);
   const ramCapacidade = capacidadeRam(componentes);
 
@@ -88,9 +97,13 @@ export default function EsteComputador({ geracao }: { geracao: GeracaoPcId }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className={estilo.titulo}>{info.nome}</p>
-            <p className={`text-xs ${estilo.nota}`}>CodeQuest OS · disco de projetos</p>
+            <p className={`text-xs ${estilo.nota}`}>
+              {sistemaOperacional?.instalado ? sistemaOperacional.versao : "Sem sistema operacional"} · disco de projetos
+            </p>
           </div>
-          <span className={`rounded px-2 py-1 text-xs ${estilo.valor}`}>online</span>
+          <span className={`rounded px-2 py-1 text-xs ${estilo.valor}`}>
+            {sistemaOperacional?.instalado ? "online" : "sem boot"}
+          </span>
         </div>
       </div>
 
@@ -107,6 +120,38 @@ export default function EsteComputador({ geracao }: { geracao: GeracaoPcId }) {
 
         <section className={`rounded border p-3 ${estilo.painel}`}>
           <p className={`mb-2 text-xs font-semibold uppercase ${estilo.label}`}>Sistema</p>
+          <dl className="space-y-1">
+            <Linha
+              rotulo="SO"
+              valor={sistemaOperacional?.instalado ? sistemaOperacional.versao : "Nao instalado"}
+              estilo={estilo}
+            />
+            <Linha
+              rotulo="Usuario"
+              valor={sistemaOperacional?.usuarioLocal ?? "runner"}
+              estilo={estilo}
+            />
+            <Linha
+              rotulo="Boot"
+              valor={(sistemaOperacional?.bootPreferido ?? "disco").toUpperCase()}
+              estilo={estilo}
+            />
+            <Linha
+              rotulo="Midia"
+              valor={
+                sistemaOperacional?.midiaConectada
+                  ? "USB conectada"
+                  : possuiMidiaInstalacao
+                    ? "Na mochila"
+                    : "Nao comprada"
+              }
+              estilo={estilo}
+            />
+          </dl>
+        </section>
+
+        <section className={`rounded border p-3 ${estilo.painel}`}>
+          <p className={`mb-2 text-xs font-semibold uppercase ${estilo.label}`}>Dispositivos</p>
           <dl className="space-y-1">
             <Linha rotulo="Disco" valor={componenteAtual("disco")} estilo={estilo} />
             <Linha rotulo="Rede" valor={componenteAtual("rede")} estilo={estilo} />
@@ -146,7 +191,11 @@ export default function EsteComputador({ geracao }: { geracao: GeracaoPcId }) {
           <Barra
             rotulo="Boot"
             valor={`${(boot / 1000).toFixed(1)}s`}
-            porcentagem={desempenhoPorTempo(boot, 4200, 600)}
+            porcentagem={desempenhoPorTempo(
+              boot,
+              duracaoBootPiorMs(geracao),
+              duracaoBootMelhorMs(geracao),
+            )}
             estilo={estilo}
           />
         </div>

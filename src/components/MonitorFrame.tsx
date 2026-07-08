@@ -14,15 +14,22 @@ export default function MonitorFrame({
   children,
   compacto = false,
   className = "",
+  powerControl,
 }: {
   children: ReactNode;
   compacto?: boolean;
   className?: string;
+  powerControl?: ReactNode;
 }) {
   return (
-    <div className={`monitor-frame ${compacto ? "monitor-frame--compacto" : ""} ${className}`}>
+    <div
+      className={`monitor-frame ${compacto ? "monitor-frame--compacto" : ""} ${
+        powerControl ? "monitor-frame--com-power" : ""
+      } ${className}`}
+    >
       <div className="monitor-frame__bezel">
         <div className="monitor-frame__tela">{children}</div>
+        {powerControl && <div className="monitor-frame__power">{powerControl}</div>}
       </div>
       {!compacto && (
         <>

@@ -426,8 +426,10 @@ function Lutador({ lado, hp, espelhado = false }: { lado: Lado; hp: number; espe
         classe={lado.ficha.classe}
         corPele={lado.ficha.corPele}
         corPrincipal={lado.ficha.corPrincipal}
+        avatarModo={lado.ficha.avatarModo}
+        fotoUrl={lado.ficha.fotoUrl}
         tamanho={56}
-        className={espelhado ? "-scale-x-100" : ""}
+        className={`${espelhado ? "-scale-x-100" : ""} rounded-lg`}
       />
       <p className="max-w-[100px] truncate text-xs font-semibold">{lado.nome}</p>
       <ServidorRack

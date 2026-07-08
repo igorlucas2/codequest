@@ -23,12 +23,23 @@ export async function GET() {
   );
   const niveisComponentes = sanitizarNiveis(dados?.componentes);
 
-  const progressoLinhas = await consultar<{ fase_ordem: number; xp: number }>(
-    "SELECT fase_ordem, xp FROM progresso WHERE usuario_id = ?",
+  const progressoLinhas = await consultar<{ fase_ordem: number; xp: number; concluida_em: Date | string }>(
+    "SELECT fase_ordem, xp, concluida_em FROM progresso WHERE usuario_id = ?",
     [u.id],
   );
   const fasesConcluidas = progressoLinhas.map((l) => l.fase_ordem);
   const xp = progressoLinhas.reduce((s, l) => s + l.xp, 0);
+  const historico = progressoLinhas
+    .map((l) => ({
+      faseOrdem: l.fase_ordem,
+      xp: l.xp,
+      concluidaEm: l.concluida_em ? new Date(l.concluida_em).toISOString() : null,
+    }))
+    .sort((a, b) => {
+      const dataA = a.concluidaEm ? new Date(a.concluidaEm).getTime() : 0;
+      const dataB = b.concluidaEm ? new Date(b.concluidaEm).getTime() : 0;
+      return dataB - dataA;
+    });
 
   const inventarioLinhas = await consultar<{ item_id: string; equipado: number }>(
     "SELECT item_id, equipado FROM inventario WHERE usuario_id = ?",
@@ -55,7 +66,7 @@ export async function GET() {
     usuario: u,
     moedas: dados?.moedas ?? 0,
     ficha,
-    progresso: { fasesConcluidas, xp },
+    progresso: { fasesConcluidas, xp, historico },
     inventario,
     equipados,
     componentes: niveisComponentes,

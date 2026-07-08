@@ -7,7 +7,7 @@ type Props = InputHTMLAttributes<HTMLInputElement>;
 export default function Input({ className = "", ...resto }: Props) {
   return (
     <input
-      className={`w-full rounded-xl border border-borda bg-fundo-card px-4 py-3 outline-none focus:border-primaria ${className}`}
+      className={`w-full rounded-xl border border-borda bg-fundo px-4 py-3 outline-none transition focus:border-primaria focus:bg-fundo-card ${className}`}
       {...resto}
     />
   );

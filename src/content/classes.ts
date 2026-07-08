@@ -96,11 +96,15 @@ export const OPCOES_COR = [
   "94a3b8", // cromo
 ];
 
+export type AvatarModo = "robo" | "foto";
+
 export type Ficha = {
   classe: ClasseId;
   raca: RacaId;
   corPele: string;
   corPrincipal: string;
+  avatarModo: AvatarModo;
+  fotoUrl: string | null;
 };
 
 export const FICHA_PADRAO: Ficha = {
@@ -108,6 +112,8 @@ export const FICHA_PADRAO: Ficha = {
   raca: "python",
   corPele: "2ce6ff",
   corPrincipal: "a855f7",
+  avatarModo: "robo",
+  fotoUrl: null,
 };
 
 export function getClasse(id: string): Classe | undefined {
@@ -132,11 +138,18 @@ export function sanitizarFicha(bruto: unknown): Ficha {
   const c = (bruto ?? {}) as Record<string, unknown>;
   const naLista = (lista: readonly string[], v: unknown, padrao: string) =>
     lista.includes(v as string) ? (v as string) : padrao;
+  const fotoUrl =
+    typeof c.fotoUrl === "string" && /^\/uploads\/avatars\/[a-zA-Z0-9._-]+\.(png|jpg|jpeg|webp)$/.test(c.fotoUrl)
+      ? c.fotoUrl
+      : null;
+  const avatarModo: AvatarModo = c.avatarModo === "foto" && fotoUrl ? "foto" : "robo";
 
   return {
     classe: naLista(CLASSES.map((x) => x.id), c.classe, FICHA_PADRAO.classe) as ClasseId,
     raca: naLista(RACAS.map((x) => x.id), c.raca, FICHA_PADRAO.raca) as RacaId,
     corPele: naLista(OPCOES_PELE, c.corPele, FICHA_PADRAO.corPele),
     corPrincipal: naLista(OPCOES_COR, c.corPrincipal, FICHA_PADRAO.corPrincipal),
+    avatarModo,
+    fotoUrl,
   };
 }

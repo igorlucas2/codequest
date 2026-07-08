@@ -1,3 +1,5 @@
+import type { GeracaoPcId } from "@/content/geracoesPc";
+
 // Velocidade de acesso (stats.velocidade, vem do hardware equipado: notebook,
 // RAM, peças) controla três coisas, todas no mesmo formato linear-com-piso:
 // o atraso de "conectando ao servidor..." antes da resposta chegar, a
@@ -15,6 +17,22 @@ export function atrasoConexaoMs(velocidade: number) {
 }
 
 // Duração do boot (BIOS/splash) do desktop emulado antes de ficar usável.
-export function duracaoBootMs(velocidade: number) {
-  return Math.max(600, 4200 - velocidade * 250);
+const PERFIL_BOOT: Record<GeracaoPcId, { multiplicador: number; piso: number; base: number }> = {
+  win98: { multiplicador: 1, piso: 60_000, base: 90_000 },
+  xp: { multiplicador: 0.72, piso: 28_000, base: 58_000 },
+  neon: { multiplicador: 0.52, piso: 9_000, base: 28_000 },
+};
+
+export function duracaoBootMs(velocidade: number, geracao: GeracaoPcId = "win98") {
+  const perfil = PERFIL_BOOT[geracao];
+  const base = Math.max(perfil.piso, perfil.base - velocidade * 520);
+  return Math.max(perfil.piso, Math.round(base * perfil.multiplicador));
+}
+
+export function duracaoBootPiorMs(geracao: GeracaoPcId) {
+  return duracaoBootMs(0, geracao);
+}
+
+export function duracaoBootMelhorMs(geracao: GeracaoPcId) {
+  return duracaoBootMs(99, geracao);
 }

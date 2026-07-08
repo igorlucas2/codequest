@@ -13,6 +13,8 @@ export async function POST(req: Request) {
   const item = getItem(String(itemId ?? ""));
   if (!item)
     return NextResponse.json({ erro: "Item inválido." }, { status: 400 });
+  if (item.tipo === "midia")
+    return NextResponse.json({ erro: "Midias de boot nao sao equipaveis." }, { status: 400 });
 
   const idsDoTipo = ITENS.filter((i) => i.tipo === item.tipo).map((i) => i.id);
 

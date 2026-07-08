@@ -235,6 +235,44 @@
   justify-content: center;
   border-radius: 1rem;
   border: 1px solid var(--color-borda);
+  overflow: hidden;
+  position: relative;
+}
+
+.power-screen {
+  position: relative;
+  display: block;
+  height: 640px;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid #050505;
+  background: #000;
+  box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.03);
+}
+.power-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.035), transparent 36%);
+}
+.power-screen--win98 {
+  background: #000;
+}
+.power-screen--xp {
+  background: #000;
+}
+.power-screen--neon {
+  background: #000;
+}
+.desktop-power-fallback {
+  position: relative;
+}
+.desktop-power-fallback .monitor-power-button {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  z-index: 3;
 }
 
 /* ===== Geração NEON (BlackHat Ops) — reaproveita o tema já existente ===== */
@@ -443,6 +481,7 @@
 }
 .boot-screen--win98 {
   background: #000;
+  flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
   padding: 24px;
@@ -453,6 +492,15 @@
   line-height: 1.4;
   color: #b0b0b0;
   white-space: pre-wrap;
+}
+.boot-win98-marca,
+.boot-win98-tempo {
+  display: inline-block;
+}
+.boot-win98-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 /* ===== Geração XP (Notebook Gamer) ===== */
@@ -562,4 +610,1418 @@
   background: linear-gradient(90deg, #6ec06e, #cdeecb);
   transition-property: width;
   transition-timing-function: linear;
+}
+
+.boot-win98-cabecalho {
+  width: 100%;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #3a3a3a;
+  padding-bottom: 10px;
+  color: #fff;
+  font-family: var(--font-retro-mono);
+  font-size: 1.1rem;
+}
+.boot-cursor {
+  animation: bootCursorBlink 900ms steps(1, end) infinite;
+  color: #fff;
+}
+.boot-xp-logo {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  text-align: center;
+}
+.boot-xp-subtitulo,
+.boot-status {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8rem;
+}
+.boot-neon-painel {
+  width: min(420px, calc(100% - 32px));
+  border: 1px solid rgba(44, 230, 255, 0.25);
+  background: rgba(2, 7, 18, 0.88);
+  padding: 22px;
+  box-shadow: 0 0 28px rgba(44, 230, 255, 0.12);
+}
+.boot-neon-eyebrow {
+  color: var(--color-ouro);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+}
+.boot-neon-titulo {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--color-texto);
+}
+.boot-neon-titulo-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.boot-neon-lista {
+  margin-top: 18px;
+  min-height: 96px;
+  font-family: var(--font-retro-mono);
+  font-size: 0.78rem;
+  color: var(--color-texto-suave);
+}
+.boot-neon-lista p {
+  display: flex;
+  gap: 10px;
+  line-height: 1.8;
+}
+.boot-neon-lista span {
+  color: #22c55e;
+}
+.boot-progress {
+  width: min(520px, 100%);
+}
+.boot-progress-topo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+.boot-progress-topo p {
+  font-weight: 800;
+}
+.boot-progress-topo div > span {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  opacity: 0.78;
+}
+.boot-progress-topo strong {
+  font-family: var(--font-retro-mono);
+  font-size: 0.86rem;
+}
+.boot-progress-barra {
+  margin-top: 10px;
+  height: 13px;
+  overflow: hidden;
+}
+.boot-progress-preenchida {
+  height: 100%;
+  width: 0%;
+  transition: width 240ms linear;
+}
+.boot-os-icon {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  flex: 0 0 auto;
+  font-weight: 900;
+  line-height: 1;
+}
+.boot-os-icon--win98 {
+  border: 2px solid #dfdfdf;
+  background:
+    linear-gradient(90deg, #f43f5e 0 50%, #22c55e 50%),
+    linear-gradient(#3b82f6 0 50%, #facc15 50%);
+  background-blend-mode: multiply;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff;
+  color: #fff;
+  font-family: var(--font-retro-ui);
+  text-shadow: 1px 1px 0 #000;
+}
+.boot-os-icon--xp {
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, #f43f5e 0 50%, transparent 50%),
+    linear-gradient(45deg, #22c55e 0 50%, #3b82f6 50%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    0 8px 18px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
+}
+.boot-os-icon--neon {
+  border: 1px solid rgba(44, 230, 255, 0.48);
+  border-radius: 0.5rem;
+  background: rgba(44, 230, 255, 0.1);
+  color: var(--color-ouro);
+  box-shadow:
+    inset 0 0 18px rgba(44, 230, 255, 0.1),
+    0 0 18px rgba(44, 230, 255, 0.12);
+}
+.boot-progress--win98 {
+  margin-top: auto;
+  border: 2px solid #dfdfdf;
+  background: #c0c0c0;
+  padding: 10px;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff,
+    inset -2px -2px 0 #808080,
+    inset 2px 2px 0 #dfdfdf;
+  color: #000;
+  font-family: var(--font-retro-ui);
+}
+.boot-progress--win98 .boot-progress-barra {
+  border: 1px solid #000;
+  background: #fff;
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff;
+}
+.boot-progress--win98 .boot-progress-preenchida {
+  background: repeating-linear-gradient(90deg, #000080 0 12px, #1084d0 12px 24px);
+}
+.boot-progress--xp {
+  width: min(440px, calc(100% - 32px));
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  background: rgba(5, 28, 79, 0.28);
+  padding: 14px;
+  color: #fff;
+}
+.boot-progress--xp .boot-progress-barra {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.boot-progress--xp .boot-progress-preenchida {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6ec06e, #cdeecb);
+}
+.boot-progress--neon {
+  margin-top: 16px;
+  width: 100%;
+  color: var(--color-texto);
+}
+.boot-progress--neon .boot-progress-barra {
+  background: rgba(44, 230, 255, 0.12);
+}
+.boot-progress--neon .boot-progress-preenchida {
+  background: linear-gradient(90deg, var(--color-primaria), var(--color-ouro));
+}
+
+.boot-setup-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.45);
+  padding: 6px 10px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.boot-setup-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.bios-screen {
+  display: flex;
+  height: 640px;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid #141414;
+  background: #050505;
+  color: #d8d8d8;
+  font-family: var(--font-retro-mono);
+}
+.bios-header,
+.bios-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #111;
+  padding: 12px 16px;
+}
+.bios-header {
+  border-bottom: 1px solid #444;
+}
+.bios-header h2 {
+  margin-top: 2px;
+  font-size: 1.1rem;
+  color: #fff;
+}
+.bios-header span,
+.bios-eyebrow {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+.bios-grid {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+.bios-panel {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #3f3f46;
+  background: #0b0b0f;
+  padding: 12px;
+}
+.bios-panel--wide {
+  grid-column: 1 / -1;
+}
+.bios-panel h3 {
+  margin-bottom: 10px;
+  color: #facc15;
+  font-size: 0.9rem;
+}
+.bios-lista {
+  display: grid;
+  gap: 8px;
+}
+.bios-lista div,
+.bios-hardware div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 6px;
+}
+.bios-lista dt,
+.bios-hardware span {
+  color: #9ca3af;
+}
+.bios-lista dd,
+.bios-hardware strong {
+  color: #fff;
+  text-align: right;
+}
+.bios-hardware {
+  display: grid;
+  gap: 8px;
+}
+.bios-boot-order {
+  display: grid;
+  gap: 8px;
+}
+.bios-boot-order li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bios-boot-order span {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid currentColor;
+  color: #facc15;
+}
+.bios-boot-actions {
+  display: grid;
+  gap: 8px;
+}
+.bios-boot-actions button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 10px;
+  align-items: center;
+  border: 1px solid #4b5563;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 8px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bios-boot-actions button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+.bios-boot-actions button > span {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  grid-row: span 2;
+  border: 1px solid currentColor;
+  color: #facc15;
+}
+.bios-boot-actions button > small {
+  color: #9ca3af;
+}
+.bios-boot-actions .bios-boot-active {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.12);
+}
+.bios-media-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bios-media-row div {
+  display: grid;
+  gap: 3px;
+}
+.bios-media-row strong {
+  color: #fff;
+}
+.bios-media-row span {
+  color: #9ca3af;
+  font-size: 0.78rem;
+}
+.bios-media-row button {
+  border: 1px solid #5b5b66;
+  background: #16161d;
+  padding: 8px 12px;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.bios-media-row button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+.bios-footer {
+  border-top: 1px solid #444;
+}
+.bios-footer button {
+  border: 1px solid #5b5b66;
+  background: #16161d;
+  padding: 8px 12px;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.bios-footer button:hover {
+  border-color: #facc15;
+}
+
+.bios-screen--win98 {
+  background: #000080;
+  color: #fff;
+}
+.bios-screen--win98 .bios-header,
+.bios-screen--win98 .bios-footer,
+.bios-screen--win98 .bios-panel {
+  border-color: #fff;
+  background: #000060;
+}
+.bios-screen--xp {
+  background: linear-gradient(180deg, #0b3d91, #1f5ebd);
+}
+.bios-screen--xp .bios-header,
+.bios-screen--xp .bios-footer,
+.bios-screen--xp .bios-panel {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(4, 23, 66, 0.55);
+}
+.bios-screen--neon {
+  background:
+    linear-gradient(rgba(44, 230, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 230, 255, 0.05) 1px, transparent 1px),
+    #020711;
+  background-size: 32px 32px, 32px 32px, auto;
+}
+.bios-screen--neon .bios-header,
+.bios-screen--neon .bios-footer,
+.bios-screen--neon .bios-panel {
+  border-color: rgba(44, 230, 255, 0.26);
+  background: rgba(4, 10, 24, 0.82);
+}
+
+.os-installer,
+.no-boot {
+  display: grid;
+  height: 640px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #050505;
+  color: #f8fafc;
+}
+.os-installer-panel,
+.no-boot > div {
+  width: min(520px, calc(100% - 32px));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 15, 28, 0.88);
+  padding: 22px;
+}
+.os-installer-panel header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.os-installer-panel header p {
+  font-weight: 900;
+}
+.os-installer-panel header small,
+.os-installer-form p,
+.os-installer-progress span,
+.no-boot-text {
+  color: rgba(248, 250, 252, 0.72);
+}
+.os-installer-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+.os-installer-form label {
+  display: grid;
+  gap: 6px;
+  color: rgba(248, 250, 252, 0.82);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.os-installer-form input {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.4rem;
+  background: rgba(0, 0, 0, 0.34);
+  padding: 9px 10px;
+  color: #fff;
+  outline: none;
+}
+.os-installer-progress {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+.os-installer-progress strong {
+  font-family: var(--font-retro-mono);
+  color: #facc15;
+}
+.os-installer-panel footer,
+.no-boot-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+.os-installer-panel button,
+.no-boot-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 9px 13px;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+.os-installer-panel button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.os-installer--win98,
+.no-boot--win98 {
+  background: #000;
+  color: #d8d8d8;
+  font-family: var(--font-retro-mono);
+}
+.os-installer--xp,
+.no-boot--xp {
+  background: linear-gradient(180deg, #0b3d91, #3f8cf3);
+}
+.os-installer--neon,
+.no-boot--neon {
+  background:
+    linear-gradient(rgba(44, 230, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 230, 255, 0.05) 1px, transparent 1px),
+    #030711;
+  background-size: 32px 32px, 32px 32px, auto;
+}
+.no-boot-title {
+  font-family: var(--font-retro-mono);
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #f87171;
+}
+.no-boot-text {
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+.os-login {
+  display: grid;
+  height: 640px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+.os-login-card {
+  display: grid;
+  width: min(360px, calc(100% - 32px));
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+.os-login-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.os-login-logo > span {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  font-weight: 900;
+}
+.os-login-logo p {
+  font-weight: 900;
+}
+.os-login-logo small,
+.os-login-user span {
+  color: inherit;
+  opacity: 0.72;
+}
+.os-login-avatar {
+  border-radius: 14px;
+}
+.os-login-user {
+  display: grid;
+  gap: 3px;
+}
+.os-login-user strong {
+  font-size: 1.05rem;
+}
+.os-login-password {
+  display: flex;
+  gap: 6px;
+}
+.os-login-password span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.os-login-card button {
+  border: 0;
+  padding: 10px 22px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.os-login--win98 {
+  background: #008080;
+  color: #000;
+  font-family: var(--font-retro-ui);
+}
+.os-login--win98 .os-login-card {
+  border: 2px solid #dfdfdf;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff,
+    inset -2px -2px 0 #808080,
+    inset 2px 2px 0 #dfdfdf;
+}
+.os-login--win98 .os-login-logo > span,
+.os-login--win98 .os-login-card button {
+  border: 1px solid #000;
+  background: #c0c0c0;
+  box-shadow:
+    inset -1px -1px 0 #000,
+    inset 1px 1px 0 #fff;
+}
+.os-login--xp {
+  background: linear-gradient(180deg, #0b3d91, #3f8cf3 62%, #6ca9eb);
+  color: #fff;
+}
+.os-login--xp .os-login-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(8, 34, 84, 0.36);
+}
+.os-login--xp .os-login-logo > span,
+.os-login--xp .os-login-card button {
+  border-radius: 999px;
+  background: linear-gradient(180deg, #6ec06e, #2f8f2f);
+  color: #fff;
+}
+.os-login--neon {
+  background:
+    linear-gradient(rgba(44, 230, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 230, 255, 0.05) 1px, transparent 1px),
+    #030711;
+  background-size: 32px 32px, 32px 32px, auto;
+  color: var(--color-texto);
+}
+.os-login--neon .os-login-card {
+  border: 1px solid rgba(44, 230, 255, 0.28);
+  border-radius: 0.75rem;
+  background: rgba(6, 12, 24, 0.92);
+  box-shadow: 0 0 28px rgba(44, 230, 255, 0.12);
+}
+.os-login--neon .os-login-logo > span,
+.os-login--neon .os-login-card button {
+  border: 1px solid rgba(44, 230, 255, 0.42);
+  border-radius: 0.5rem;
+  background: rgba(44, 230, 255, 0.12);
+  color: var(--color-ouro);
+}
+
+@keyframes bootCursorBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ===== MSN Messenger ===== */
+
+.msn-classic {
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f9fbff 0%, #eef5ff 46%, #d8e7fb 100%);
+  color: #101c2c;
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+}
+
+.msn-menu-bar {
+  display: flex;
+  height: 27px;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid #b8c6d7;
+  background: linear-gradient(180deg, #fbfaf7, #e4e0d8);
+  padding: 0 6px;
+}
+.msn-menu-bar button {
+  border: 0;
+  background: transparent;
+  padding: 4px 10px;
+  color: #111;
+  font-size: 12px;
+  cursor: default;
+}
+.msn-menu-bar button:hover {
+  background: #dbe9fb;
+}
+
+.msn-app {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid #5b8ac6;
+  background: #eef6ff;
+  color: #15345b;
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+}
+
+.msn-app--main {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #d9ecff, #f6fbff 45%, #d5e8fb);
+}
+
+.msn-program-icon {
+  position: relative;
+  display: inline-block;
+  width: 1.6em;
+  height: 1.35em;
+  vertical-align: middle;
+}
+.msn-program-icon::before,
+.msn-program-icon::after {
+  content: "";
+  position: absolute;
+  bottom: 0.05em;
+  width: 0.9em;
+  height: 1.05em;
+  border-radius: 0.55em 0.55em 0.36em 0.36em;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 0.12em 0 rgba(255, 255, 255, 0.58);
+}
+.msn-program-icon::before {
+  left: 0.05em;
+  background: linear-gradient(180deg, #87ddff, #1e8ed8);
+}
+.msn-program-icon::after {
+  right: 0.05em;
+  background: linear-gradient(180deg, #ffe65c, #f6a900);
+}
+.msn-program-icon--desktop {
+  width: 2.4rem;
+  height: 2rem;
+}
+.msn-program-icon--small {
+  width: 1.15rem;
+  height: 1rem;
+}
+.msn-program-icon--hero {
+  width: 42px;
+  height: 34px;
+  flex-shrink: 0;
+}
+.msn-program-icon--login {
+  width: 132px;
+  height: 112px;
+}
+.msn-program-icon--profile {
+  width: 42px;
+  height: 36px;
+}
+
+.msn-butterfly {
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 22px;
+  vertical-align: middle;
+}
+.msn-butterfly::before,
+.msn-butterfly::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 20px;
+  border-radius: 80% 20% 80% 20%;
+  transform: rotate(28deg);
+}
+.msn-butterfly::before {
+  left: 2px;
+  top: 1px;
+  background: linear-gradient(180deg, #3aa5df, #1866b5);
+}
+.msn-butterfly::after {
+  right: 1px;
+  top: 0;
+  background: linear-gradient(180deg, #ff9645, #ffc640);
+}
+.msn-butterfly--tiny {
+  width: 16px;
+  height: 14px;
+}
+.msn-butterfly--tiny::before,
+.msn-butterfly--tiny::after {
+  width: 9px;
+  height: 13px;
+}
+
+.msn-login {
+  display: flex;
+  flex-direction: column;
+}
+.msn-login-panel {
+  position: relative;
+  flex: 1;
+  margin: 8px;
+  overflow: hidden;
+  border: 1px solid #b9cce3;
+  border-radius: 18px 18px 0 0;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.62) 30%, transparent 55%),
+    linear-gradient(180deg, #fbfdff 0%, #eef5ff 55%, #d6e6f8 100%);
+  box-shadow: inset 0 0 0 1px #f7fbff;
+}
+.msn-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+}
+.msn-orb-button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid #afc3dd;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, #dbe8f8);
+  color: #4b6684;
+  font-weight: 700;
+}
+.msn-wordmark {
+  color: #124a96;
+  font-size: 30px;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+.msn-messenger-word {
+  color: #172949;
+  font-size: 24px;
+  font-weight: 700;
+}
+.msn-login-center {
+  display: grid;
+  width: min(320px, calc(100% - 40px));
+  margin: 18px auto 0;
+  gap: 10px;
+  color: #111;
+  font-size: 18px;
+}
+.msn-login-avatar {
+  display: grid;
+  width: 170px;
+  height: 132px;
+  place-items: center;
+  justify-self: center;
+  border: 2px solid #8d98a8;
+  border-radius: 10px;
+  background: white;
+}
+.msn-login-center label {
+  display: grid;
+  gap: 4px;
+}
+.msn-login-center input {
+  height: 32px;
+  border: 2px solid #9aa9bd;
+  background: white;
+  padding: 4px 7px;
+  color: #111;
+  font-size: 16px;
+}
+.msn-combo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+}
+.msn-combo button {
+  border: 2px solid #9aa9bd;
+  border-left: 0;
+  background: linear-gradient(180deg, #fff, #e5e9ef);
+}
+.msn-login-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.msn-login-status button {
+  border: 0;
+  background: transparent;
+  font-size: 18px;
+}
+.msn-signin-button {
+  justify-self: end;
+  border: 1px solid #7a9ec8;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffffff, #cce3fb);
+  padding: 5px 18px;
+  font-weight: 700;
+}
+
+.msn-wlm-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border-bottom: 1px solid #9fbfe1;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.72), transparent 28%),
+    linear-gradient(180deg, #75b8ff, #2f79cc);
+  color: white;
+}
+
+.msn-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #b6cce4;
+  background: linear-gradient(180deg, #e9f5ff, #cfe4fb);
+  padding: 8px;
+}
+.msn-profile-tile {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid #8cafcf;
+  border-radius: 3px;
+  background: white;
+}
+.msn-list-header p {
+  color: #102744;
+  font-weight: 700;
+}
+.msn-list-header p span {
+  font-weight: 400;
+}
+.msn-list-header small {
+  color: #53718e;
+}
+
+.msn-contact-layout {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: 42px minmax(0, 1fr);
+}
+.msn-left-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border-right: 1px solid #bfd4ea;
+  background: linear-gradient(180deg, #e5f2ff, #c9def4);
+  padding: 10px 4px;
+}
+.msn-rail-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid #99bbdc;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fff, #dbeafd);
+}
+.msn-rail-icon::before {
+  font-size: 16px;
+}
+.msn-rail-icon--people::before { content: "👥"; }
+.msn-rail-icon--mail::before { content: "✉"; }
+.msn-rail-icon--mobile::before { content: "▯"; }
+.msn-rail-icon--star::before { content: "★"; color: #f1a900; }
+.msn-rail-icon--paint::before { content: "▰"; color: #e64c8a; }
+.msn-wlm-header p {
+  font-size: 13px;
+  font-weight: 700;
+}
+.msn-wlm-header small {
+  color: #e8f4ff;
+}
+
+.msn-main-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.msn-sidebar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border-right: 1px solid #86aad6;
+  background: linear-gradient(180deg, #d9ecff, #f6fbff 45%, #d5e8fb);
+}
+
+.msn-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid #9fbfe1;
+  background: linear-gradient(180deg, #75b8ff, #2f79cc);
+  color: white;
+}
+
+.msn-buddy-icon {
+  position: relative;
+  width: 36px;
+  height: 30px;
+}
+.msn-buddy-icon span {
+  position: absolute;
+  bottom: 2px;
+  width: 20px;
+  height: 22px;
+  border-radius: 11px 11px 8px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  background: linear-gradient(180deg, #ffdf47, #f7a600);
+}
+.msn-buddy-icon span:first-child {
+  left: 0;
+  background: linear-gradient(180deg, #77d7ff, #2188d5);
+}
+.msn-buddy-icon span:last-child {
+  right: 0;
+}
+
+.msn-add {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+}
+.msn-add input,
+.msn-compose input {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #7da4d3;
+  border-radius: 3px;
+  background: white;
+  padding: 5px 7px;
+  color: #15345b;
+  outline: none;
+}
+.msn-add input:focus,
+.msn-compose input:focus {
+  border-color: #2f79cc;
+}
+.msn-add button,
+.msn-compose button,
+.msn-search-row button,
+.msn-invite button {
+  border: 1px solid #6f9bcc;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffffff, #c9e0fb);
+  padding: 4px 8px;
+  color: #14375f;
+  font-weight: 700;
+  cursor: pointer;
+}
+.msn-add button:disabled,
+.msn-compose button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.msn-panel {
+  margin: 0 8px 8px;
+  border: 1px solid #a9c6e8;
+  background: rgba(255, 255, 255, 0.74);
+}
+.msn-panel-title,
+.msn-group-title {
+  padding: 5px 8px;
+  color: #315d91;
+  font-weight: 700;
+}
+.msn-search-row,
+.msn-invite,
+.msn-contact {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 5px 8px;
+  color: #15345b;
+  text-align: left;
+}
+.msn-contact {
+  position: relative;
+  cursor: pointer;
+}
+.msn-contact:hover,
+.msn-contact--active {
+  background: #cde7ff;
+}
+.msn-contact small {
+  color: #6d819a;
+  font-size: 10px;
+  line-height: 1.1;
+}
+.msn-status-label {
+  color: #5f7898;
+  font-size: 10px;
+}
+.msn-list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+.msn-empty {
+  padding: 3px 12px 8px;
+  color: #6d819a;
+}
+.msn-presence {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #a4aab1;
+}
+.msn-presence--online {
+  background: #30a43b;
+}
+.msn-unread {
+  min-width: 18px;
+  border-radius: 999px;
+  background: #e34b4b;
+  padding: 1px 5px;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.msn-chat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  background: #f8fbff;
+}
+.msn-chat--window {
+  height: 100%;
+  border: 1px solid #5b8ac6;
+}
+.msn-chat-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 7px;
+  border-bottom: 1px solid #b9cde4;
+  background: linear-gradient(180deg, #ffffff, #dcecff);
+  padding: 6px 8px 5px;
+}
+.msn-toolbar-button {
+  display: grid;
+  min-width: 54px;
+  justify-items: center;
+  border: 0;
+  background: transparent;
+  color: #223b5b;
+  font-size: 10px;
+}
+.msn-toolbar-icon {
+  display: grid;
+  width: 25px;
+  height: 24px;
+  place-items: center;
+}
+.msn-toolbar-icon::before {
+  font-size: 20px;
+}
+.msn-toolbar-icon--invite::before { content: "👥"; }
+.msn-toolbar-icon--files::before { content: "📁"; }
+.msn-toolbar-icon--video::before { content: "📹"; }
+.msn-toolbar-icon--voice::before { content: "🎙"; }
+.msn-toolbar-icon--activities::before { content: "🎲"; }
+.msn-toolbar-icon--games::before { content: "♠"; color: #111; }
+.msn-chat-toolbar-logo {
+  margin-left: auto;
+  color: #234c8c;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 900;
+}
+.msn-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid #a9c6e8;
+  background: linear-gradient(180deg, #ffffff, #dcebfc);
+  padding: 9px 10px;
+}
+.msn-chat-body {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  gap: 6px;
+  padding: 6px;
+}
+.msn-chat-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.msn-to-line {
+  height: 23px;
+  border: 1px solid #a8bfd8;
+  border-bottom: 0;
+  background: #fff;
+  padding: 4px 7px;
+  color: #333;
+}
+.msn-messages {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)),
+    linear-gradient(135deg, #d8ecff, #fff7d8);
+}
+.msn-chat-main .msn-messages {
+  border: 1px solid #a8bfd8;
+  background: white;
+  padding: 8px;
+}
+.msn-message {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+}
+.msn-message--mine {
+  justify-content: flex-end;
+}
+.msn-message div {
+  max-width: 82%;
+  border: 1px solid #b5cae2;
+  border-radius: 7px;
+  background: white;
+  padding: 7px 9px;
+  box-shadow: 0 1px 2px rgba(44, 74, 110, 0.14);
+}
+.msn-message--mine div {
+  border-color: #8db7e5;
+  background: #dff0ff;
+}
+.msn-message p {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.msn-message span {
+  display: block;
+  margin-top: 3px;
+  color: #7088a3;
+  font-size: 10px;
+  text-align: right;
+}
+.msn-compose {
+  display: flex;
+  gap: 7px;
+  border-top: 1px solid #a9c6e8;
+  background: #e4f1ff;
+  padding: 8px;
+}
+.msn-chat-main .msn-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px;
+  border: 1px solid #a8bfd8;
+  border-top: 0;
+  background: white;
+}
+.msn-send-stack {
+  display: grid;
+  gap: 4px;
+}
+.msn-send-stack button {
+  min-height: 28px;
+}
+.msn-actions {
+  display: flex;
+  gap: 5px;
+  border-top: 1px solid #c0d6ef;
+  background: #eef6ff;
+  padding: 5px 8px;
+}
+.msn-chat-main .msn-actions {
+  border: 1px solid #a8bfd8;
+  border-top: 0;
+  background: linear-gradient(180deg, #f9fbff, #dcecff);
+}
+.msn-actions button {
+  border: 1px solid #6f9bcc;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffffff, #d6e8fb);
+  padding: 3px 8px;
+  color: #14375f;
+  font-size: 11px;
+  font-weight: 700;
+}
+.msn-empty-chat {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  padding: 18px;
+  color: #6d819a;
+  text-align: center;
+}
+.msn-chat-side {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.msn-side-card {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  border: 1px solid #9db8d7;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ffffff, #e9f3ff);
+  padding: 8px;
+}
+.msn-side-card button {
+  justify-self: end;
+  border: 0;
+  background: transparent;
+}
+.msn-duck-icon {
+  position: relative;
+  width: 70px;
+  height: 70px;
+}
+.msn-duck-icon::before {
+  content: "";
+  position: absolute;
+  inset: 18px 4px 8px 8px;
+  border-radius: 55% 45% 50% 50%;
+  background: linear-gradient(180deg, #ffe65c, #f5b900);
+  box-shadow: inset 0 8px 8px rgba(255,255,255,.5);
+}
+.msn-duck-icon::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 31px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff16f, #f4bf00);
+  box-shadow: 16px 12px 0 -9px #f47c20, 9px 8px 0 -6px #111;
+}
+.msn-chat-footer {
+  height: 22px;
+  border-top: 1px solid #a8bfd8;
+  background: linear-gradient(180deg, #ffffff, #d8eafb);
+  padding: 4px 8px;
+  color: #333;
+  font-size: 11px;
+}
+
+.msn-popups {
+  position: absolute;
+  right: 14px;
+  bottom: 52px;
+  z-index: 12000;
+  display: flex;
+  width: min(300px, calc(100% - 28px));
+  flex-direction: column;
+  gap: 8px;
+}
+.msn-popup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #4a8bd4;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f7fbff, #cce5ff);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  padding: 8px;
+  color: #14375f;
+  text-align: left;
+  cursor: pointer;
+}
+.msn-popup-icon {
+  display: grid;
+  width: 34px;
+  height: 30px;
+  place-items: center;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #75b8ff, #2f79cc);
+  color: white;
+  font-size: 10px;
+  font-weight: 900;
+}
+.msn-popup strong,
+.msn-popup small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.msn-popup small {
+  color: #466b94;
+}
+.msn-popup-close {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 3px;
+  color: #315d91;
+  font-weight: 700;
+}
+.msn-popup-close:hover {
+  background: rgba(49, 93, 145, 0.12);
 }

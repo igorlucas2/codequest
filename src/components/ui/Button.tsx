@@ -5,10 +5,10 @@ type Variante = "primario" | "perigo" | "sucesso" | "fantasma";
 type Tamanho = "sm" | "md";
 
 const VARIANTES: Record<Variante, string> = {
-  primario: "bg-primaria text-white hover:bg-primaria-forte",
-  sucesso: "bg-sucesso text-fundo hover:opacity-90",
-  perigo: "bg-erro/20 text-erro hover:bg-erro/30",
-  fantasma: "bg-transparent text-texto-suave hover:bg-fundo-card hover:text-texto",
+  primario: "border border-primaria/70 bg-primaria text-fundo hover:bg-primaria-forte hover:text-white",
+  sucesso: "border border-sucesso/60 bg-sucesso text-fundo hover:opacity-90",
+  perigo: "border border-erro/30 bg-erro/10 text-erro hover:bg-erro/20",
+  fantasma: "border border-transparent bg-transparent text-texto-suave hover:border-borda hover:bg-fundo-fosco hover:text-texto",
 };
 
 const TAMANHOS: Record<Tamanho, string> = {

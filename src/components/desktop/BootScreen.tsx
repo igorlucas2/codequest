@@ -1,74 +1,172 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getGeracaoPc, type GeracaoPcId } from "@/content/geracoesPc";
 import { duracaoBootMs } from "@/lib/velocidade";
 import { tocarBoot } from "@/lib/som";
-import type { GeracaoPcId } from "@/content/geracoesPc";
 
-const LINHAS_BIOS = [
-  "NETRUN BIOS v4.11",
-  "Memory Test: 640K OK",
-  "Detecting IDE drives...",
-  "IDE0: NETRUN-98-HDD   IDE1: none",
-  "Iniciando NETRUN 98...",
-];
+const LINHAS_BOOT: Record<GeracaoPcId, string[]> = {
+  win98: [
+    "NETRUN BIOS v4.11",
+    "CPU: runner compatible mode",
+    "Memory Test: OK",
+    "Detecting IDE drives...",
+    "IDE0: CODEQUEST-HDD",
+    "Loading CodeQuest OS...",
+    "Starting desktop session...",
+  ],
+  xp: [
+    "Carregando perfil do runner",
+    "Montando disco de projetos",
+    "Iniciando rede local",
+    "Abrindo area de trabalho",
+  ],
+  neon: [
+    "Power rail: stable",
+    "Workspace: synced",
+    "Apps: indexed",
+    "Runner session: ready",
+  ],
+};
 
-// Tela de boot antes do desktop ficar usável. A duração vem de
-// stats.velocidade (hardware melhor = boot mais rápido) — mesma fonte que já
-// controla o atraso de conexão e a digitação do Terminal. O visual muda por
-// geração: Win98 é uma rolagem de texto estilo BIOS, XP uma barra de
-// progresso, neon reaproveita o flicker que já existia.
+const SISTEMA_BOOT: Record<GeracaoPcId, { rotulo: string; subtitulo: string }> = {
+  win98: { rotulo: "98", subtitulo: "CodeQuest OS 98" },
+  xp: { rotulo: "XP", subtitulo: "Netrun XP" },
+  neon: { rotulo: "CQ", subtitulo: "CodeQuest OS" },
+};
+
+const POST_VAZIO: string[] = [];
+
+function statusAtual(linhas: string[], visiveis: number) {
+  return linhas[Math.min(Math.max(visiveis - 1, 0), linhas.length - 1)] ?? "";
+}
+
+function BootProgress({
+  geracao,
+  progresso,
+  status,
+}: {
+  geracao: GeracaoPcId;
+  progresso: number;
+  status: string;
+}) {
+  const sistema = SISTEMA_BOOT[geracao];
+  const porcentagem = Math.max(0, Math.min(100, Math.round(progresso)));
+
+  return (
+    <div className={`boot-progress boot-progress--${geracao}`}>
+      <div className="boot-progress-topo">
+        <span className={`boot-os-icon boot-os-icon--${geracao}`} aria-hidden="true">
+          {sistema.rotulo}
+        </span>
+        <div>
+          <p>{sistema.subtitulo}</p>
+          <span>{status}</span>
+        </div>
+        <strong>{porcentagem}%</strong>
+      </div>
+      <div className="boot-progress-barra" aria-label={`Inicializando ${sistema.subtitulo}`}>
+        <div className="boot-progress-preenchida" style={{ width: `${porcentagem}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function BootScreen({
   geracao,
   velocidade,
+  postLinhas = POST_VAZIO,
+  onAbrirSetup,
   aoConcluir,
 }: {
   geracao: GeracaoPcId;
   velocidade: number;
+  postLinhas?: string[];
+  onAbrirSetup?: () => void;
   aoConcluir: () => void;
 }) {
-  const duracao = duracaoBootMs(velocidade);
+  const duracao = duracaoBootMs(velocidade, geracao);
+  const info = getGeracaoPc(geracao);
+  const linhas = useMemo(() => {
+    const base = LINHAS_BOOT[geracao];
+    return [...base.slice(0, 2), ...postLinhas, ...base.slice(2)];
+  }, [geracao, postLinhas]);
   const [linhasVisiveis, setLinhasVisiveis] = useState(0);
   const [progresso, setProgresso] = useState(0);
+  const [setupDisponivel, setSetupDisponivel] = useState(Boolean(onAbrirSetup));
+  const status = statusAtual(linhas, linhasVisiveis);
 
   useEffect(() => {
-    const id = setTimeout(aoConcluir, duracao);
+    tocarBoot(geracao);
+
+    const concluirId = setTimeout(() => {
+      setProgresso(100);
+      aoConcluir();
+    }, duracao);
+
+    return () => {
+      clearTimeout(concluirId);
+    };
+  }, [aoConcluir, duracao, geracao]);
+
+  useEffect(() => {
+    if (!onAbrirSetup) return;
+    const id = setTimeout(() => setSetupDisponivel(false), 10_000);
     return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Bipe de "ligando" ao acender a tela de boot — cosmético, se o navegador
-  // ainda não tiver liberado áudio (sem gesto prévio do usuário) só não toca.
-  useEffect(() => {
-    tocarBoot();
-  }, []);
+  }, [onAbrirSetup]);
 
   useEffect(() => {
-    if (geracao !== "win98") return;
-    const intervalo = duracao / LINHAS_BIOS.length;
+    if (!onAbrirSetup || !setupDisponivel) return;
+    const abrirSetup = onAbrirSetup;
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === "F2" || e.key === "Delete") {
+        e.preventDefault();
+        abrirSetup();
+      }
+    }
+
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [onAbrirSetup, setupDisponivel]);
+
+  useEffect(() => {
+    const intervalo = Math.max(450, Math.min(2200, Math.floor(duracao / (linhas.length + 1))));
     const id = setInterval(() => {
-      setLinhasVisiveis((n) => Math.min(LINHAS_BIOS.length, n + 1));
+      setLinhasVisiveis((n) => Math.min(linhas.length, n + 1));
     }, intervalo);
+
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geracao]);
+  }, [duracao, linhas]);
 
   useEffect(() => {
-    if (geracao !== "xp") return;
-    // Um tick de atraso pra garantir que o navegador aplique width:0% antes
-    // de animar até 100% (senão a transição não roda).
-    const id = requestAnimationFrame(() => setProgresso(100));
-    return () => cancelAnimationFrame(id);
-  }, [geracao]);
+    const inicio = performance.now();
+    const id = setInterval(() => {
+      const decorrido = performance.now() - inicio;
+      setProgresso(Math.min(100, (decorrido / duracao) * 100));
+    }, 250);
+
+    return () => clearInterval(id);
+  }, [duracao]);
 
   if (geracao === "win98") {
     return (
       <div className="boot-screen boot-screen--win98">
-        <div className="boot-win98-texto">
-          {LINHAS_BIOS.slice(0, linhasVisiveis).map((linha, i) => (
-            <p key={i}>{linha}</p>
-          ))}
+        <div className="boot-win98-cabecalho">
+          <span className="boot-win98-marca">{info.nome}</span>
+          <span className="boot-win98-tempo">{Math.round(progresso)}%</span>
         </div>
+        {setupDisponivel && onAbrirSetup && (
+          <button type="button" className="boot-setup-button" onClick={onAbrirSetup}>
+            F2 Setup
+          </button>
+        )}
+        <div className="boot-win98-texto">
+          {linhas.slice(0, linhasVisiveis).map((linha) => (
+            <p key={linha}>{linha}</p>
+          ))}
+          <span className="boot-cursor">_</span>
+        </div>
+        <BootProgress geracao={geracao} progresso={progresso} status={status} />
       </div>
     );
   }
@@ -76,22 +174,48 @@ export default function BootScreen({
   if (geracao === "xp") {
     return (
       <div className="boot-screen boot-screen--xp">
-        <p className="boot-xp-marca">NETRUN XP</p>
-        <div className="boot-xp-barra">
-          <div
-            className="boot-xp-barra-preenchida"
-            style={{ width: `${progresso}%`, transitionDuration: `${duracao}ms` }}
-          />
+        {setupDisponivel && onAbrirSetup && (
+          <button type="button" className="boot-setup-button" onClick={onAbrirSetup}>
+            F2 Setup
+          </button>
+        )}
+        <div className="boot-xp-logo">
+          <span className="boot-os-icon boot-os-icon--xp" aria-hidden="true">
+            XP
+          </span>
+          <p className="boot-xp-marca">{info.nome}</p>
+          <p className="boot-xp-subtitulo">Iniciando sessao do runner</p>
         </div>
+        <BootProgress geracao={geracao} progresso={progresso} status={status} />
       </div>
     );
   }
 
   return (
     <div className="boot-screen boot-screen--neon">
-      <p className="titulo animate-pulse text-sm tracking-widest text-ouro">
-        CONECTANDO AO DECK...
-      </p>
+      {setupDisponivel && onAbrirSetup && (
+        <button type="button" className="boot-setup-button" onClick={onAbrirSetup}>
+          F2 Setup
+        </button>
+      )}
+      <div className="boot-neon-painel">
+        <p className="boot-neon-eyebrow">CODEQUEST OS</p>
+        <div className="boot-neon-titulo-linha">
+          <span className="boot-os-icon boot-os-icon--neon" aria-hidden="true">
+            CQ
+          </span>
+          <p className="boot-neon-titulo">Subindo deck pessoal</p>
+        </div>
+        <div className="boot-neon-lista">
+          {linhas.slice(0, linhasVisiveis).map((linha) => (
+            <p key={linha}>
+              <span>ok</span>
+              {linha}
+            </p>
+          ))}
+        </div>
+        <BootProgress geracao={geracao} progresso={progresso} status={status} />
+      </div>
     </div>
   );
 }

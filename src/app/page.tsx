@@ -7,7 +7,7 @@ import { usuarioAtual } from "@/lib/auth";
 
 export default async function Home() {
   const usuario = await usuarioAtual();
-  if (usuario) redirect(usuario.papel === "professor" ? "/professor" : "/trilha");
+  if (usuario) redirect(usuario.papel === "professor" ? "/professor" : "/computador");
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col px-6 py-12">
@@ -40,8 +40,8 @@ export default async function Home() {
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
-            href="/trilha"
-            className="titulo chip bg-arcano px-8 py-3 font-bold text-white shadow-lg shadow-arcano/30 transition hover:bg-arcano-forte"
+            href="/computador"
+            className="titulo chip border border-primaria/50 bg-primaria px-8 py-3 font-bold text-fundo transition hover:bg-primaria-forte hover:text-white"
           >
             Conectar à Rede →
           </Link>

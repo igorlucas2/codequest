@@ -116,7 +116,7 @@ function Janela({
         onPointerUp={janela.maximizada ? undefined : arraste.onPointerUp}
       >
         <span className="janela-titulo-texto">
-          <span className="mr-1">{janela.icone}</span>
+          <span className="mr-1">{janela.icone === "msn" ? <MsnIconePequeno /> : janela.icone}</span>
           {janela.titulo}
         </span>
         {/* Impede que o pointerdown chegue no arraste da barra de título —
@@ -155,3 +155,7 @@ function Janela({
 // arrastada (o estado de todas vive no reducer do Desktop) — memo evita que
 // as que não mudaram re-renderizem à toa.
 export default memo(Janela);
+
+function MsnIconePequeno() {
+  return <span className="msn-program-icon msn-program-icon--small" aria-hidden="true" />;
+}

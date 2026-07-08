@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   avatar JSON NULL,
   componentes JSON NULL,
   tour_visto TINYINT(1) NOT NULL DEFAULT 0,
+  ultimo_online DATETIME NULL,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -128,6 +129,45 @@ CREATE TABLE IF NOT EXISTS notebook_workspaces (
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS computadores (
+  usuario_id INT PRIMARY KEY,
+  sistema_instalado TINYINT(1) NOT NULL DEFAULT 1,
+  sistema_versao VARCHAR(60) NOT NULL DEFAULT 'CodeQuest OS',
+  usuario_local VARCHAR(32) NOT NULL DEFAULT 'runner',
+  nome_maquina VARCHAR(40) NOT NULL DEFAULT 'deck-runner',
+  instalado_em DATETIME NULL,
+  midia_conectada TINYINT(1) NOT NULL DEFAULT 0,
+  boot_preferido ENUM('disco','usb','rede') NOT NULL DEFAULT 'disco',
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS msn_contatos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  solicitante_id INT NOT NULL,
+  destinatario_id INT NOT NULL,
+  status ENUM('pendente','aceito') NOT NULL DEFAULT 'pendente',
+  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_msn_contato (solicitante_id, destinatario_id),
+  KEY idx_msn_destinatario_status (destinatario_id, status),
+  FOREIGN KEY (solicitante_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY (destinatario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS mensagens_msn (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  remetente_id INT NOT NULL,
+  destinatario_id INT NOT NULL,
+  texto VARCHAR(600) NOT NULL,
+  criada_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  lida_em TIMESTAMP NULL,
+  KEY idx_msn_remetente_destinatario (remetente_id, destinatario_id, id),
+  KEY idx_msn_destinatario_lida (destinatario_id, lida_em),
+  FOREIGN KEY (remetente_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY (destinatario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Proposta de duelo PvP entre o clique em "Invadir" e a confirmação das
 -- rodadas digitadas: guarda um snapshot dos stats de ambos os lados (pra não
 -- deixar trocar de equipamento no meio do duelo mudar retroativamente o
@@ -159,6 +199,7 @@ const MIGRACOES = [
   "ALTER TABLE usuarios ADD COLUMN moedas INT NOT NULL DEFAULT 30",
   "ALTER TABLE usuarios ADD COLUMN avatar JSON NULL",
   "ALTER TABLE usuarios ADD COLUMN componentes JSON NULL",
+  "ALTER TABLE usuarios ADD COLUMN ultimo_online DATETIME NULL",
   "ALTER TABLE servidores ADD COLUMN rede_ip VARCHAR(15) NULL",
   "ALTER TABLE servidores ADD COLUMN rede_mascara VARCHAR(15) NULL",
   "ALTER TABLE servidores ADD COLUMN rede_gateway VARCHAR(15) NULL",
@@ -215,7 +256,7 @@ try {
   await conn.changeUser({ database: dbname });
   await conn.query(SCHEMA);
   console.log(
-    "Tabelas criadas/garantidas: usuarios, progresso, inventario, batalhas, invasoes, servidores, apps_instalados, notebook_workspaces, duelos_pendentes",
+    "Tabelas criadas/garantidas: usuarios, progresso, inventario, batalhas, invasoes, servidores, apps_instalados, notebook_workspaces, computadores, msn_contatos, mensagens_msn, duelos_pendentes",
   );
   await migrar(conn);
   await conn.end();

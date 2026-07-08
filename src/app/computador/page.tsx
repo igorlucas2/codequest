@@ -3,15 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import NavRpg from "@/components/NavRpg";
-import MonitorFrame from "@/components/MonitorFrame";
-import Desktop from "@/components/desktop/Desktop";
+import ComputadorMonitor from "@/components/desktop/ComputadorMonitor";
 import PainelHardware from "@/components/PainelHardware";
 import { capacidadeRam } from "@/content/componentes";
+import { MIDIA_CODEQUEST_OS_ITEM_ID } from "@/content/computador";
 import { useSessao } from "@/components/Sessao";
 
 export default function Computador() {
   const router = useRouter();
-  const { carregado, usuario, equipados, stats, componentes } = useSessao();
+  const { carregado, usuario, equipados, stats, componentes, ficha, inventario } = useSessao();
 
   useEffect(() => {
     if (carregado && !usuario) router.replace("/entrar");
@@ -38,14 +38,17 @@ export default function Computador() {
       </header>
 
       <div className="mt-6">
-        <MonitorFrame>
-          <Desktop
-            equipados={equipados}
-            velocidade={stats.velocidade}
-            capacidadeRam={capacidadeRam(componentes)}
-            chavePastas={`usuario-${usuario.id}`}
-          />
-        </MonitorFrame>
+        <ComputadorMonitor
+          equipados={equipados}
+          velocidade={stats.velocidade}
+          capacidadeRam={capacidadeRam(componentes)}
+          chavePastas={`usuario-${usuario.id}`}
+          componentes={componentes}
+          usuarioNome={usuario.nome}
+          usuarioEmail={usuario.email}
+          possuiMidiaInstalacaoInicial={inventario.some((item) => item.itemId === MIDIA_CODEQUEST_OS_ITEM_ID)}
+          ficha={ficha}
+        />
       </div>
 
       <div className="mt-8">

@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { useSessao } from "@/components/Sessao";
 import { useToast } from "@/components/Toast";
+import {
+  EVENTO_ESTADO_ENERGIA,
+  lerEstadoEnergiaSalvo,
+  type EstadoEnergiaComputador,
+} from "@/components/desktop/persistenciaDesktop";
 import {
   COMPONENTES,
   nivelDe,
@@ -41,12 +46,31 @@ export default function PainelHardware() {
   const { componentes, moedas, melhorarComponente } = useSessao();
   const { mostrar } = useToast();
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [energia, setEnergia] = useState<EstadoEnergiaComputador>(() => lerEstadoEnergiaSalvo());
 
   const disco = capacidadeDisco(componentes);
   const ram = capacidadeRam(componentes);
   const vel = velocidadeHardware(componentes);
+  const computadorDesligado = energia === "desligado";
+
+  useEffect(() => {
+    function atualizarEnergia() {
+      setEnergia(lerEstadoEnergiaSalvo());
+    }
+
+    window.addEventListener(EVENTO_ESTADO_ENERGIA, atualizarEnergia);
+    window.addEventListener("storage", atualizarEnergia);
+    return () => {
+      window.removeEventListener(EVENTO_ESTADO_ENERGIA, atualizarEnergia);
+      window.removeEventListener("storage", atualizarEnergia);
+    };
+  }, []);
 
   async function aoMelhorar(id: string, nome: string) {
+    if (!computadorDesligado) {
+      mostrar("Desligue o computador para trocar hardware.", "erro");
+      return;
+    }
     setOcupado(id);
     const r = await melhorarComponente(id);
     if (r.ok) mostrar(`${nome} instalado!`, "sucesso");
@@ -74,6 +98,12 @@ export default function PainelHardware() {
         <Resumo icone="💾" rotulo="RAM" valor={`${ram} apps`} />
         <Resumo icone="⚡" rotulo="Velocidade" valor={`+${vel}`} />
       </div>
+
+      {!computadorDesligado && (
+        <div className="mt-4 rounded-xl border border-erro/40 bg-erro/10 px-4 py-3 text-sm text-erro">
+          Desligue o computador no botao fisico do monitor para instalar ou trocar hardware.
+        </div>
+      )}
 
       <div className="mt-5 space-y-3">
         {COMPONENTES.map((comp) => {
@@ -104,10 +134,16 @@ export default function PainelHardware() {
                 {prox ? (
                   <Button
                     tamanho="sm"
-                    disabled={!podeComprar}
+                    disabled={!podeComprar || !computadorDesligado}
                     carregando={carregando}
                     onClick={() => aoMelhorar(comp.id, prox.nome)}
-                    title={podeComprar ? `Instalar ${prox.nome}` : "Créditos insuficientes"}
+                    title={
+                      !computadorDesligado
+                        ? "Desligue o computador para trocar hardware"
+                        : podeComprar
+                          ? `Instalar ${prox.nome}`
+                          : "Creditos insuficientes"
+                    }
                   >
                     ◈ {prox.preco}
                   </Button>

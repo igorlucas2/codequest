@@ -20,7 +20,7 @@ export default function NavRpg() {
   const { usuario, moedas, sair } = useSessao();
 
   return (
-    <nav className="cartao relative left-1/2 flex w-[calc(100dvw-1rem)] -translate-x-1/2 flex-wrap items-center justify-between gap-3 rounded-2xl px-3 py-2">
+    <nav className="cartao relative left-1/2 flex w-[calc(100dvw-1rem)] -translate-x-1/2 flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2">
       <div className="flex flex-wrap items-center gap-1">
         {LINKS.map((l) => {
           const ativo = pathname === l.href;
@@ -28,16 +28,16 @@ export default function NavRpg() {
             <Link
               key={l.href}
               href={l.href}
-              className={`relative rounded-lg px-3 py-1.5 text-sm transition-all duration-200 ${
+              className={`relative rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
                 ativo
-                  ? "bg-primaria/15 text-primaria"
-                  : "text-texto-suave hover:bg-fundo/60 hover:text-texto"
+                  ? "border-primaria/35 bg-fundo-fosco text-ouro"
+                  : "border-transparent text-texto-suave hover:border-borda hover:bg-fundo/60 hover:text-texto"
               }`}
             >
               <span className="mr-1">{l.icone}</span>
               {l.rotulo}
               {ativo && (
-                <span className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-primaria shadow-[0_0_8px_rgba(168,85,247,0.7)]" />
+                <span className="absolute inset-x-3 -bottom-0.5 h-px rounded-full bg-primaria" />
               )}
             </Link>
           );
@@ -45,10 +45,10 @@ export default function NavRpg() {
         {usuario?.papel === "professor" && (
           <Link
             href="/professor"
-            className={`relative rounded-lg px-3 py-1.5 text-sm transition-all duration-200 ${
+            className={`relative rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
               pathname === "/professor"
-                ? "bg-primaria/15 text-primaria"
-                : "text-destaque hover:bg-fundo/60 hover:underline"
+                ? "border-primaria/35 bg-fundo-fosco text-ouro"
+                : "border-transparent text-destaque hover:border-borda hover:bg-fundo/60"
             }`}
           >
             🛰 Instrutor
@@ -56,7 +56,7 @@ export default function NavRpg() {
         )}
       </div>
       <div className="flex shrink-0 items-center gap-3 text-sm">
-        <span className="text-ouro">◈ {moedas} cr</span>
+        <span className="rounded-lg border border-borda bg-fundo px-2.5 py-1 text-ouro">◈ {moedas} cr</span>
         <Button variante="fantasma" tamanho="sm" onClick={sair} className="hover:text-erro">
           Desconectar
         </Button>

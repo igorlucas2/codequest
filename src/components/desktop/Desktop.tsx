@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState, type MouseEvent } from "react";
 import "@/app/desktop.css";
 import { useToast } from "@/components/Toast";
 import { geracaoPorNotebook } from "@/content/geracoesPc";
@@ -14,7 +14,14 @@ import {
   ALTURA_MINIMA_JANELA,
 } from "@/components/desktop/limitesDesktop";
 import BootScreen from "@/components/desktop/BootScreen";
-import { lerLigadoSalvo, salvarLigado, lerEstadoSalvo, salvarEstado } from "@/components/desktop/persistenciaDesktop";
+import PowerOffScreen from "@/components/desktop/PowerOffScreen";
+import {
+  lerLigadoSalvo,
+  salvarLigado,
+  lerEstadoSalvo,
+  salvarEstado,
+  type EstadoSistemaOperacional,
+} from "@/components/desktop/persistenciaDesktop";
 import EsteComputador from "@/components/desktop/programas/EsteComputador";
 import LeiaMe from "@/components/desktop/programas/LeiaMe";
 import Lixeira from "@/components/desktop/programas/Lixeira";
@@ -24,6 +31,10 @@ import Historico from "@/components/desktop/programas/Historico";
 import Ssh from "@/components/desktop/programas/Ssh";
 import Ide, { type IdeProgramaProps } from "@/components/desktop/programas/Ide";
 import Projetos from "@/components/desktop/programas/Projetos";
+import Msn from "@/components/desktop/programas/Msn";
+import MsnChat from "@/components/desktop/programas/MsnChat";
+import MsnNotifier from "@/components/desktop/MsnNotifier";
+import { tocarPower } from "@/lib/som";
 import IconePastaDesktop from "@/components/desktop/IconePastaDesktop";
 import PastaJanela from "@/components/desktop/PastaJanela";
 import {
@@ -46,6 +57,8 @@ export type ProgramaId =
   | "invasor"
   | "historico"
   | "ssh"
+  | "msn"
+  | "msn_chat"
   // Janela genérica que hospeda UMA pasta do desktop por vez (payload =
   // { pastaId }), no mesmo molde do "invasor". Não entra em ORDEM_ICONES: só
   // abre ao dar duplo-clique num ícone de pasta.
@@ -122,6 +135,20 @@ const PROGRAMAS: Record<
     largura: 560,
     altura: 420,
   },
+  msn: {
+    rotuloIcone: "MSN",
+    titulo: "MSN Messenger",
+    icone: "msn",
+    largura: 330,
+    altura: 560,
+  },
+  msn_chat: {
+    rotuloIcone: "Conversa",
+    titulo: "Conversa — MSN",
+    icone: "msn",
+    largura: 520,
+    altura: 520,
+  },
   pasta: {
     rotuloIcone: "Pasta",
     titulo: "Pasta",
@@ -137,6 +164,7 @@ const PROGRAMAS: Record<
 const ORDEM_ICONES: ProgramaId[] = [
   "ide",
   "projetos",
+  "msn",
   "ssh",
   "computador",
   "alvos",
@@ -352,6 +380,8 @@ export default function Desktop({
   usarEstadoSalvo = true,
   persistirEstado = true,
   ide,
+  sistemaOperacional,
+  possuiMidiaInstalacao = false,
 }: {
   equipados: string[];
   velocidade: number;
@@ -367,10 +397,13 @@ export default function Desktop({
   usarEstadoSalvo?: boolean;
   persistirEstado?: boolean;
   ide?: IdeProgramaProps;
+  sistemaOperacional?: EstadoSistemaOperacional;
+  possuiMidiaInstalacao?: boolean;
 }) {
   const geracao = geracaoPorNotebook(equipados);
   const { mostrar } = useToast();
   const [ligado, setLigado] = useState(() => (sempreLigado ? true : lerLigadoSalvo()));
+  const [inicializando, setInicializando] = useState(false);
   const [estado, dispatch] = useReducer(
     reduzirDesktop,
     ESTADO_INICIAL,
@@ -468,8 +501,38 @@ export default function Desktop({
     dispatch({ tipo: "abrir", programaId });
   }
 
+  const ligarDesktop = useCallback(() => {
+    tocarPower(geracao);
+    setInicializando(true);
+  }, [geracao]);
+
+  const concluirBoot = useCallback(() => {
+    setLigado(true);
+    setInicializando(false);
+  }, []);
+
   if (!ligado) {
-    return <BootScreen geracao={geracao} velocidade={velocidade} aoConcluir={() => setLigado(true)} />;
+    if (inicializando) {
+      return <BootScreen geracao={geracao} velocidade={velocidade} aoConcluir={concluirBoot} />;
+    }
+
+    return (
+      <div className="desktop-power-fallback">
+        <PowerOffScreen geracao={geracao} />
+        <button
+          type="button"
+          className="monitor-power-button"
+          onClick={ligarDesktop}
+          aria-label="Ligar computador"
+          title="Ligar"
+        >
+          <span className="monitor-power-led monitor-power-led--off" aria-hidden="true" />
+          <span className="monitor-power-symbol" aria-hidden="true">
+            I/O
+          </span>
+        </button>
+      </div>
+    );
   }
 
   const janelaAtiva =
@@ -523,7 +586,13 @@ export default function Desktop({
 
       {estado.janelas.map((j) => (
         <Janela key={j.id} janela={j} geracao={geracao} ativa={j.id === janelaAtiva} dispatch={dispatch}>
-          {j.id === "computador" && <EsteComputador geracao={geracao} />}
+          {j.id === "computador" && (
+            <EsteComputador
+              geracao={geracao}
+              sistemaOperacional={sistemaOperacional}
+              possuiMidiaInstalacao={possuiMidiaInstalacao}
+            />
+          )}
           {j.id === "leiame" && <LeiaMe geracao={geracao} />}
           {j.id === "lixeira" && <Lixeira geracao={geracao} />}
           {j.id === "alvos" && (
@@ -541,6 +610,16 @@ export default function Desktop({
           )}
           {j.id === "historico" && <Historico />}
           {j.id === "ssh" && <Ssh velocidade={velocidade} />}
+          {j.id === "msn" && (
+            <Msn
+              onAbrirConversa={(contatoId) =>
+                dispatch({ tipo: "abrir", programaId: "msn_chat", payload: { contatoId } })
+              }
+            />
+          )}
+          {j.id === "msn_chat" && (
+            <MsnChat contatoId={(j.payload as { contatoId?: number } | undefined)?.contatoId ?? null} />
+          )}
           {j.id === "ide" && <Ide {...ide} />}
           {j.id === "projetos" && (
             <Projetos
@@ -585,6 +664,11 @@ export default function Desktop({
         }}
         onOrganizar={() =>
           dispatch({ tipo: "organizar", larguraArea: desktopRef.current?.clientWidth ?? 700 })
+        }
+      />
+      <MsnNotifier
+        onAbrirContato={(contatoId) =>
+          dispatch({ tipo: "abrir", programaId: "msn_chat", payload: { contatoId } })
         }
       />
     </div>
