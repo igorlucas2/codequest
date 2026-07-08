@@ -103,6 +103,10 @@ CREATE TABLE IF NOT EXISTS servidores (
   boot_finaliza_em DATETIME NULL,
   ssh_usuario VARCHAR(32) NOT NULL DEFAULT 'runner',
   patch_cord_conectado TINYINT(1) NOT NULL DEFAULT 0,
+  midias_so JSON NULL,
+  midia_boot VARCHAR(30) NULL,
+  instalacao_so_id VARCHAR(30) NULL,
+  instalacao_finaliza_em DATETIME NULL,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -171,6 +175,10 @@ const MIGRACOES = [
   "ALTER TABLE servidores ADD COLUMN boot_finaliza_em DATETIME NULL",
   "ALTER TABLE servidores ADD COLUMN ssh_usuario VARCHAR(32) NOT NULL DEFAULT 'runner'",
   "ALTER TABLE servidores ADD COLUMN patch_cord_conectado TINYINT(1) NOT NULL DEFAULT 0",
+  "ALTER TABLE servidores ADD COLUMN midias_so JSON NULL",
+  "ALTER TABLE servidores ADD COLUMN midia_boot VARCHAR(30) NULL",
+  "ALTER TABLE servidores ADD COLUMN instalacao_so_id VARCHAR(30) NULL",
+  "ALTER TABLE servidores ADD COLUMN instalacao_finaliza_em DATETIME NULL",
   "ALTER TABLE batalhas ADD KEY idx_vencedor (vencedor_id)",
   // Quem já tinha rede configurada antes da internet virar pré-requisito não
   // pode perder alcance de rede silenciosamente — considera "já contratada".

@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   if (acao === "desligar") {
     await executar(
-      "UPDATE servidores SET servidor_ligado = 0, boot_finaliza_em = NULL WHERE usuario_id = ?",
+      "UPDATE servidores SET servidor_ligado = 0, boot_finaliza_em = NULL, instalacao_so_id = NULL, instalacao_finaliza_em = NULL WHERE usuario_id = ?",
       [u.id],
     );
     return NextResponse.json({ ok: true, estadoOperacional: await carregarEstadoOperacional(u.id) });
@@ -30,14 +30,18 @@ export async function POST(req: Request) {
   const linhas = await consultar<{
     tier: ServidorTierId;
     sistema_operacional: string | null;
+    midia_boot: string | null;
     servidor_ligado: number;
   }>(
-    "SELECT tier, sistema_operacional, servidor_ligado FROM servidores WHERE usuario_id = ? LIMIT 1",
+    "SELECT tier, sistema_operacional, midia_boot, servidor_ligado FROM servidores WHERE usuario_id = ? LIMIT 1",
     [u.id],
   );
   const servidor = linhas[0];
-  if (!servidor?.sistema_operacional) {
-    return NextResponse.json({ erro: "Instale um sistema operacional antes de ligar o servidor." }, { status: 400 });
+  if (!servidor?.sistema_operacional && !servidor?.midia_boot) {
+    return NextResponse.json(
+      { erro: "Insira uma mídia de boot ou instale um sistema operacional antes de ligar o servidor." },
+      { status: 400 },
+    );
   }
 
   const estadoAtual = await carregarEstadoOperacional(u.id);

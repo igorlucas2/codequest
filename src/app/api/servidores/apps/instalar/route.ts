@@ -9,6 +9,7 @@ import {
   carregarAppsInstaladosParaAtualizar,
   carregarEstadoOperacional,
   carregarStatusSistema,
+  carregarMidiasSistema,
   capacidadeUsada,
   multiplicarPorFrota,
 } from "@/lib/servidores";
@@ -32,6 +33,13 @@ export async function POST(req: Request) {
   const { sistemaOperacional } = await carregarStatusSistema(u.id);
   if (!sistemaOperacional) {
     return NextResponse.json({ erro: "Instale um sistema operacional antes de instalar apps." }, { status: 400 });
+  }
+  const midias = await carregarMidiasSistema(u.id);
+  if (midias.midiaBoot) {
+    return NextResponse.json(
+      { erro: "O servidor está no instalador live. Ejete a mídia e ligue pelo disco antes de instalar apps." },
+      { status: 400 },
+    );
   }
 
   try {

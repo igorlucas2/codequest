@@ -6,6 +6,7 @@ import {
   carregarInfraServidor,
   carregarStatusSistema,
   carregarEstadoOperacional,
+  carregarMidiasSistema,
 } from "@/lib/servidores";
 import { getZona, ipValidoNaZona, setorDoUsuario, MASCARA_CORRETA } from "@/content/rede";
 
@@ -33,6 +34,13 @@ export async function POST(req: Request) {
   const estado = await carregarEstadoOperacional(u.id);
   if (!estado.online) {
     return NextResponse.json({ erro: "Ligue o servidor e aguarde o boot antes de configurar a rede." }, { status: 400 });
+  }
+  const midias = await carregarMidiasSistema(u.id);
+  if (midias.midiaBoot) {
+    return NextResponse.json(
+      { erro: "O servidor está no instalador live. Ejete a mídia e ligue pelo disco antes de configurar IP." },
+      { status: 400 },
+    );
   }
   if (!estado.patchCordConectado) {
     return NextResponse.json({ erro: "Conecte o patch cord no servidor antes de configurar IP." }, { status: 400 });

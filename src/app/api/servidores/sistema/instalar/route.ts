@@ -1,60 +1,71 @@
 import { NextResponse } from "next/server";
 import { transacao, SaidaTransacao } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
-import { getSistemaOperacional } from "@/content/sistemasOperacionais";
+import { getSistemaOperacional, type SistemaOperacionalId } from "@/content/sistemasOperacionais";
+import { getServidorTier, type ServidorTierId } from "@/content/servidores";
 import { garantirServidor, carregarEstadoOperacional } from "@/lib/servidores";
 
-// Instala (compra) um sistema operacional no servidor: valida saldo no
-// servidor, nunca no cliente — mesmo padrão transacional de upgrade/comprar.
-// Comprar um novo SO é "formatar e reinstalar": substitui o anterior.
-export async function POST(req: Request) {
+function dataMysql(data: Date) {
+  return data.toISOString().slice(0, 19).replace("T", " ");
+}
+
+export async function POST() {
   const u = await usuarioAtual();
   if (!u) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
 
-  const { osId } = await req.json().catch(() => ({}));
-  const so = getSistemaOperacional(String(osId ?? ""));
-  if (!so) return NextResponse.json({ erro: "Sistema operacional inválido." }, { status: 400 });
-
   await garantirServidor(u.id);
   const estado = await carregarEstadoOperacional(u.id);
-  if (estado.ligado) {
-    return NextResponse.json(
-      { erro: "Desligue o servidor no Datacenter antes de instalar ou trocar o sistema operacional." },
-      { status: 400 },
-    );
+  if (!estado.online) {
+    return NextResponse.json({ erro: "Ligue o servidor e aguarde o boot pela mídia antes de instalar." }, { status: 400 });
   }
 
   try {
     return await transacao(async (conn) => {
-      // Trava a linha do servidor antes de checar "já instalado?" — sem
-      // isso, um duplo clique trocando pra dois SOs diferentes podia
-      // debitar moedas duas vezes e persistir só um (last-write-wins).
       const [linhaServidor] = await conn.query(
-        "SELECT sistema_operacional FROM servidores WHERE usuario_id = ? FOR UPDATE",
+        "SELECT tier, sistema_operacional, midia_boot, instalacao_so_id FROM servidores WHERE usuario_id = ? FOR UPDATE",
         [u.id],
       );
-      const atual = (linhaServidor as { sistema_operacional: string | null }[])[0]?.sistema_operacional ?? null;
-      if (atual === so.id) {
+      const servidor = (linhaServidor as {
+        tier: ServidorTierId;
+        sistema_operacional: SistemaOperacionalId | null;
+        midia_boot: SistemaOperacionalId | null;
+        instalacao_so_id: SistemaOperacionalId | null;
+      }[])[0];
+
+      if (!servidor?.midia_boot) {
+        throw new SaidaTransacao(
+          NextResponse.json({ erro: "Insira uma mídia de boot antes de instalar o sistema." }, { status: 400 }),
+        );
+      }
+      const so = getSistemaOperacional(servidor.midia_boot);
+      if (!so) {
+        throw new SaidaTransacao(NextResponse.json({ erro: "Mídia de boot inválida." }, { status: 400 }));
+      }
+      if (servidor.instalacao_so_id) {
+        throw new SaidaTransacao(NextResponse.json({ erro: "Instalação já em andamento." }, { status: 409 }));
+      }
+      if (servidor.sistema_operacional === so.id) {
         throw new SaidaTransacao(
           NextResponse.json({ erro: "Esse sistema operacional já está instalado." }, { status: 409 }),
         );
       }
 
-      const [linhas] = await conn.query("SELECT moedas FROM usuarios WHERE id = ? FOR UPDATE", [u.id]);
-      const moedas = (linhas as { moedas: number }[])[0]?.moedas ?? 0;
-      if (moedas < so.preco) {
-        throw new SaidaTransacao(NextResponse.json({ erro: "Moedas insuficientes." }, { status: 402 }));
-      }
-
-      await conn.query("UPDATE usuarios SET moedas = moedas - ? WHERE id = ?", [so.preco, u.id]);
-      // Reinstalação = SO novo, serviço sshd ainda não ligado (mesmo que o SO
-      // anterior já tivesse sido habilitado) — precisa habilitar de novo.
+      const tier = getServidorTier(servidor.tier);
+      const segundosInstalacao = Math.max(10, Math.round((tier?.tempoBootSegundos ?? 24) * 0.75));
+      const finalizaEm = new Date(Date.now() + segundosInstalacao * 1000);
       await conn.query(
-        "UPDATE servidores SET sistema_operacional = ?, ssh_habilitado = 0 WHERE usuario_id = ?",
-        [so.id, u.id],
+        "UPDATE servidores SET instalacao_so_id = ?, instalacao_finaliza_em = ? WHERE usuario_id = ?",
+        [so.id, dataMysql(finalizaEm), u.id],
       );
 
-      return NextResponse.json({ ok: true, sistemaOperacional: so.id, moedas: moedas - so.preco });
+      return NextResponse.json({
+        ok: true,
+        instalacao: {
+          osId: so.id,
+          finalizaEm: finalizaEm.toISOString(),
+          restanteMs: segundosInstalacao * 1000,
+        },
+      });
     });
   } catch (e) {
     if (e instanceof SaidaTransacao) return e.resposta;

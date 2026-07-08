@@ -22,6 +22,16 @@ export type EstadoOperacionalServidor = {
   tempoBootSegundos: number;
 };
 
+export type MidiasSistemaServidor = {
+  midiasSo: SistemaOperacionalId[];
+  midiaBoot: SistemaOperacionalId | null;
+  instalacao: {
+    osId: SistemaOperacionalId;
+    finalizaEm: string;
+    restanteMs: number;
+  } | null;
+};
+
 export type AppInstalado = {
   appId: string;
   instaladoEm: Date;
@@ -43,6 +53,7 @@ export async function garantirServidor(usuarioId: number): Promise<ServidorTierI
 export async function carregarStatusSistema(
   usuarioId: number,
 ): Promise<{ sistemaOperacional: SistemaOperacionalId | null; sshHabilitado: boolean }> {
+  await finalizarInstalacaoSistema(usuarioId);
   const linhas = await consultar<{
     sistema_operacional: SistemaOperacionalId | null;
     ssh_habilitado: number;
@@ -135,6 +146,76 @@ export async function carregarEstadoOperacional(usuarioId: number): Promise<Esta
     sshUsuario: l?.ssh_usuario || "runner",
     patchCordConectado: l?.patch_cord_conectado === 1,
     tempoBootSegundos,
+  };
+}
+
+function parseMidiasSo(valor: unknown): SistemaOperacionalId[] {
+  if (!valor) return [];
+  try {
+    const parsed = typeof valor === "string" ? JSON.parse(valor) : valor;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is SistemaOperacionalId => typeof id === "string");
+  } catch {
+    return [];
+  }
+}
+
+export async function finalizarInstalacaoSistema(usuarioId: number): Promise<void> {
+  const linhas = await consultar<{
+    instalacao_so_id: SistemaOperacionalId | null;
+    instalacao_finaliza_em: Date | string | null;
+  }>(
+    "SELECT instalacao_so_id, instalacao_finaliza_em FROM servidores WHERE usuario_id = ? LIMIT 1",
+    [usuarioId],
+  );
+  const instalacao = linhas[0];
+  const osId = instalacao?.instalacao_so_id;
+  const finalizaMs = msDaData(instalacao?.instalacao_finaliza_em);
+  if (!osId || !finalizaMs || finalizaMs > Date.now()) return;
+
+  await executar(
+    `UPDATE servidores
+     SET sistema_operacional = ?,
+         ssh_habilitado = 0,
+         rede_ip = NULL,
+         rede_mascara = NULL,
+         rede_gateway = NULL,
+         rede_configurada = 0,
+         ssh_usuario = 'runner',
+         instalacao_so_id = NULL,
+         instalacao_finaliza_em = NULL
+     WHERE usuario_id = ?`,
+    [osId, usuarioId],
+  );
+}
+
+export async function carregarMidiasSistema(usuarioId: number): Promise<MidiasSistemaServidor> {
+  await finalizarInstalacaoSistema(usuarioId);
+  const linhas = await consultar<{
+    midias_so: unknown;
+    midia_boot: SistemaOperacionalId | null;
+    instalacao_so_id: SistemaOperacionalId | null;
+    instalacao_finaliza_em: Date | string | null;
+  }>(
+    "SELECT midias_so, midia_boot, instalacao_so_id, instalacao_finaliza_em FROM servidores WHERE usuario_id = ? LIMIT 1",
+    [usuarioId],
+  );
+  const l = linhas[0];
+  const finalizaMs = msDaData(l?.instalacao_finaliza_em);
+  const osInstalacao = l?.instalacao_so_id ?? null;
+  const agora = Date.now();
+  const instalacao =
+    osInstalacao && finalizaMs && finalizaMs > agora
+      ? {
+          osId: osInstalacao,
+          finalizaEm: new Date(finalizaMs).toISOString(),
+          restanteMs: Math.max(0, finalizaMs - agora),
+        }
+      : null;
+  return {
+    midiasSo: parseMidiasSo(l?.midias_so),
+    midiaBoot: l?.midia_boot ?? null,
+    instalacao,
   };
 }
 

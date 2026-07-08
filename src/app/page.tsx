@@ -1,9 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import CyberAvatar from "@/components/CyberAvatar";
 import { FASES, TRILHA, XP_TOTAL } from "@/content/trilha1";
 import { CLASSES } from "@/content/classes";
+import { usuarioAtual } from "@/lib/auth";
 
-export default function Home() {
+export default async function Home() {
+  const usuario = await usuarioAtual();
+  if (usuario) redirect(usuario.papel === "professor" ? "/professor" : "/trilha");
+
   return (
     <main className="mx-auto flex max-w-4xl flex-col px-6 py-12">
       {/* Cabeçalho */}

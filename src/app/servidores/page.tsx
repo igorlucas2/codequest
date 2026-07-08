@@ -8,11 +8,14 @@ import Button from "@/components/ui/Button";
 import { SkeletonCartoes } from "@/components/Skeleton";
 import SalaDeEquipamentos from "@/components/SalaDeEquipamentos";
 import ServidorRede from "@/components/ServidorRede";
-import ServidorSistema, { type EstadoOperacionalServidorView } from "@/components/ServidorSistema";
+import ServidorSistema, {
+  type EstadoOperacionalServidorView,
+  type MidiasSistemaServidorView,
+} from "@/components/ServidorSistema";
 import { useSessao } from "@/components/Sessao";
 import { useToast } from "@/components/Toast";
 import type { ServidorTier, ServidorTierId } from "@/content/servidores";
-import type { SistemaOperacionalId } from "@/content/sistemasOperacionais";
+import type { SistemaOperacional, SistemaOperacionalId } from "@/content/sistemasOperacionais";
 import type { SwitchTier } from "@/content/switches";
 
 type AppInstaladoView = {
@@ -34,6 +37,8 @@ type Status = {
   pendenteTotal: number;
   sistemaOperacional: SistemaOperacionalId | null;
   sshHabilitado: boolean;
+  catalogoSO: SistemaOperacional[];
+  midiasSistema: MidiasSistemaServidorView;
   servidoresExtras: number;
   numeroTotalServidores: number;
   switchInfo: SwitchTier | null;
@@ -77,10 +82,10 @@ export default function Servidores() {
   }, [usuario]);
 
   useEffect(() => {
-    if (!status?.estadoOperacional.ligando) return;
+    if (!status?.estadoOperacional.ligando && !status?.midiasSistema.instalacao) return;
     const id = window.setInterval(carregarStatus, 1000);
     return () => window.clearInterval(id);
-  }, [carregarStatus, status?.estadoOperacional.ligando]);
+  }, [carregarStatus, status?.estadoOperacional.ligando, status?.midiasSistema.instalacao]);
 
   async function acao(chave: string, url: string, body?: object) {
     setProcessando(chave);
@@ -140,6 +145,16 @@ export default function Servidores() {
     if (d?.ok) mostrar("Usuário SSH atualizado.", "sucesso");
   }
 
+  async function selecionarMidiaBoot(osId: SistemaOperacionalId | null) {
+    const d = await acao("midia-boot", "/api/servidores/sistema/midia", { osId });
+    if (d?.ok) mostrar(osId ? "Mídia inserida no servidor." : "Mídia ejetada.", "sucesso");
+  }
+
+  async function instalarSistema() {
+    const d = await acao("instalar-so", "/api/servidores/sistema/instalar");
+    if (d?.ok) mostrar("Instalação iniciada no disco do servidor.", "sucesso");
+  }
+
   async function patchCord(conectado: boolean) {
     const d = await acao("patch-cord", "/api/servidores/rede/patch-cord", { conectado });
     if (d?.ok) mostrar(conectado ? "Patch cord conectado." : "Patch cord removido.", "sucesso");
@@ -155,6 +170,8 @@ export default function Servidores() {
       </main>
     );
   }
+
+  const bootandoPelaMidia = Boolean(status.midiasSistema.midiaBoot && status.estadoOperacional.online);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -209,7 +226,7 @@ export default function Servidores() {
           </div>
 
           <aside className="space-y-3">
-            <PainelResumo titulo="Estado" valor={rotuloEstado(status.estadoOperacional)} />
+            <PainelResumo titulo="Estado" valor={bootandoPelaMidia ? "Instalador live" : rotuloEstado(status.estadoOperacional)} />
             <PainelResumo
               titulo="Hardware"
               valor={`${status.tierInfo.icone} ${status.tierInfo.nome}`}
@@ -237,11 +254,15 @@ export default function Servidores() {
           <ServidorSistema
             sistemaOperacional={status.sistemaOperacional}
             sshHabilitado={status.sshHabilitado}
+            catalogoSO={status.catalogoSO}
             estadoOperacional={status.estadoOperacional}
+            midiasSistema={status.midiasSistema}
             processando={processando}
             velocidade={stats.velocidade}
             onLigar={() => energia("ligar")}
             onDesligar={() => energia("desligar")}
+            onSelecionarMidia={selecionarMidiaBoot}
+            onInstalarSistema={instalarSistema}
             onSalvarUsuarioSsh={salvarUsuarioSsh}
             onHabilitarSsh={habilitarSsh}
           />
@@ -255,6 +276,7 @@ export default function Servidores() {
             sistemaOperacional={status.sistemaOperacional}
             online={status.estadoOperacional.online}
             ligando={status.estadoOperacional.ligando}
+            modoInstalador={bootandoPelaMidia}
             patchCordConectado={status.estadoOperacional.patchCordConectado}
             conectandoPatchCord={processando === "patch-cord"}
             internetAtiva={status.internetAtiva}

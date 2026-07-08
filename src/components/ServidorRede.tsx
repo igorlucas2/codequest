@@ -29,6 +29,7 @@ export default function ServidorRede({
   sistemaOperacional,
   online,
   ligando,
+  modoInstalador = false,
   patchCordConectado,
   conectandoPatchCord,
   internetAtiva,
@@ -40,6 +41,7 @@ export default function ServidorRede({
   sistemaOperacional: SistemaOperacionalId | null;
   online: boolean;
   ligando: boolean;
+  modoInstalador?: boolean;
   patchCordConectado: boolean;
   conectandoPatchCord: boolean;
   internetAtiva: boolean;
@@ -50,7 +52,7 @@ export default function ServidorRede({
   const reduzido = usePrefersReducedMotion();
   const tierInfo = getServidorTier(tier);
   const sistemaPronto = sistemaOperacional !== null;
-  const redePodeConfigurar = sistemaPronto && internetAtiva && online && patchCordConectado;
+  const redePodeConfigurar = sistemaPronto && internetAtiva && online && !modoInstalador && patchCordConectado;
   const [status, setStatus] = useState<StatusRede | null>(null);
   const [passo, setPasso] = useState(0);
   const [ip, setIp] = useState("");
@@ -139,7 +141,7 @@ export default function ServidorRede({
   function testarConexao() {
     if (!status || destinoTeste === "") return;
     const destinoZonaId = Number(destinoTeste);
-    const sucesso = online && patchCordConectado && (destinoZonaId === status.zonaId || status.configurada);
+    const sucesso = online && !modoInstalador && patchCordConectado && (destinoZonaId === status.zonaId || status.configurada);
     setTeste({
       destinoZonaId,
       resultado: sucesso ? "sucesso" : "bloqueado",
@@ -162,7 +164,7 @@ export default function ServidorRede({
           config={status.config}
           configurada={status.configurada}
           sistemaPronto={sistemaPronto}
-          online={online}
+          online={online && !modoInstalador}
           patchCordConectado={patchCordConectado}
           internetAtiva={internetAtiva}
           teste={teste}
@@ -195,7 +197,13 @@ export default function ServidorRede({
             <ChecklistRede
               pronto={sistemaPronto}
               titulo="Sistema operacional"
-              texto={sistemaPronto ? "Instalado. A interface de rede já pode subir." : "Instale um SO na seção acima."}
+              texto={
+                sistemaPronto
+                  ? modoInstalador
+                    ? "Instalado no disco, mas o boot atual veio da mídia."
+                    : "Instalado. A interface de rede já pode subir."
+                  : "Instale um SO na aba Sistema."
+              }
             />
             <ChecklistRede
               pronto={patchCordConectado}
@@ -203,9 +211,17 @@ export default function ServidorRede({
               texto={patchCordConectado ? "Cabo conectado na porta do servidor." : "Desligue o servidor e conecte o cabo."}
             />
             <ChecklistRede
-              pronto={online}
-              titulo="Servidor ligado"
-              texto={online ? "Boot completo. A placa de rede está ativa." : ligando ? "Aguarde o boot terminar." : "Ligue o servidor para configurar a interface."}
+              pronto={online && !modoInstalador}
+              titulo="Boot pelo disco"
+              texto={
+                modoInstalador
+                  ? "Servidor está no instalador live. Ejete a mídia e ligue pelo disco."
+                  : online
+                    ? "Boot completo. A placa de rede está ativa."
+                    : ligando
+                      ? "Aguarde o boot terminar."
+                      : "Ligue o servidor para configurar a interface."
+              }
             />
             <ChecklistRede
               pronto={internetAtiva}

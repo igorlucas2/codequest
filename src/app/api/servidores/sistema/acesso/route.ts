@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { executar } from "@/lib/db";
 import { usuarioAtual } from "@/lib/auth";
-import { garantirServidor, carregarEstadoOperacional, carregarStatusSistema } from "@/lib/servidores";
+import {
+  garantirServidor,
+  carregarEstadoOperacional,
+  carregarStatusSistema,
+  carregarMidiasSistema,
+} from "@/lib/servidores";
 
 export async function POST(req: Request) {
   const u = await usuarioAtual();
@@ -25,6 +30,13 @@ export async function POST(req: Request) {
   const estado = await carregarEstadoOperacional(u.id);
   if (!estado.online) {
     return NextResponse.json({ erro: "Ligue o servidor e aguarde o boot antes de configurar usuário." }, { status: 400 });
+  }
+  const midias = await carregarMidiasSistema(u.id);
+  if (midias.midiaBoot) {
+    return NextResponse.json(
+      { erro: "O servidor está no instalador live. Ejete a mídia e ligue pelo disco antes de criar usuário." },
+      { status: 400 },
+    );
   }
 
   await executar("UPDATE servidores SET ssh_usuario = ? WHERE usuario_id = ?", [normalizado, u.id]);

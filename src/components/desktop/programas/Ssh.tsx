@@ -29,6 +29,7 @@ type StatusServidor = {
   sshHabilitado: boolean;
   online: boolean;
   ligando: boolean;
+  bootandoMidia: boolean;
   sshUsuario: string;
   patchCordConectado: boolean;
 };
@@ -370,6 +371,12 @@ export default function Ssh({ velocidade }: { velocidade: number }) {
       if (!status) return [{ texto: "Carregando status do servidor...", tipo: "erro" }];
 
       if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostDigitado)) {
+        if (status.bootandoMidia) {
+          return [
+            { texto: `ssh: ${hostDigitado} está no instalador live, não no sistema do disco.`, tipo: "erro" },
+            { texto: "Desligue o servidor, ejete a mídia de boot e ligue pelo disco antes de usar SSH.", tipo: "info" },
+          ];
+        }
         if (!status.online) {
           return [
             {

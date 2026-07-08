@@ -11,6 +11,7 @@ import {
   carregarStatusSistema,
   carregarLayoutEquipamentos,
   carregarEstadoOperacional,
+  carregarMidiasSistema,
   capacidadeUsada,
   acumuloDoApp,
   acumuloTotal,
@@ -31,6 +32,7 @@ export async function GET() {
   const { sistemaOperacional, sshHabilitado } = await carregarStatusSistema(u.id);
   const layoutSalvo = await carregarLayoutEquipamentos(u.id);
   const estadoOperacional = await carregarEstadoOperacional(u.id);
+  const midiasSistema = await carregarMidiasSistema(u.id);
 
   const apps = instalados.map((a) => {
     const cat = getApp(a.appId);
@@ -71,6 +73,7 @@ export async function GET() {
     catalogoSwitch: SWITCH_TIERS,
     internetAtiva,
     estadoOperacional,
+    midiasSistema,
     layoutSalvo,
   });
 }

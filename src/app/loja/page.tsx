@@ -48,6 +48,15 @@ type StatusInfra = {
   catalogoApps: (App & { instalado: boolean })[];
   sistemaOperacional: SistemaOperacionalId | null;
   catalogoSO: SistemaOperacional[];
+  midiasSistema: {
+    midiasSo: SistemaOperacionalId[];
+    midiaBoot: SistemaOperacionalId | null;
+    instalacao: {
+      osId: SistemaOperacionalId;
+      finalizaEm: string;
+      restanteMs: number;
+    } | null;
+  };
   numeroTotalServidores: number;
   custoNovaUnidade: number;
   switchTier: SwitchTierId | null;
@@ -136,7 +145,7 @@ export default function Loja() {
   }
 
   const servidorLigado = infra?.estadoOperacional.ligado ?? false;
-  const servidorOnline = infra?.estadoOperacional.online ?? false;
+  const servidorOnline = Boolean(infra?.estadoOperacional.online && !infra?.midiasSistema.midiaBoot);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -202,7 +211,8 @@ export default function Loja() {
           ) : (
             <>
               <div className="cartao rounded-2xl p-4 text-sm text-texto-suave">
-                Para upgrades físicos, troca de switch, compra de servidor extra ou instalação de SO, desligue o servidor no Datacenter.
+                Para upgrades físicos, troca de switch e servidor extra, desligue o servidor no Datacenter. Sistemas
+                operacionais são comprados aqui como mídia de boot; a instalação acontece no servidor.
               </div>
 
               <div className="grid gap-3 lg:grid-cols-2">
@@ -276,37 +286,45 @@ export default function Loja() {
                   ))}
               </SecaoCatalogo>
 
-              <SecaoCatalogo titulo="Sistemas operacionais">
-                {infra.catalogoSO.map((so) => (
-                  <CardMercado
-                    key={so.id}
-                    icone={so.icone}
-                    titulo={so.nome}
-                    descricao={`${so.descricao} Gerenciador: ${so.gerenciadorPacotes}.`}
-                    acao={
-                      infra.sistemaOperacional === so.id ? (
-                        <span className="text-xs font-semibold text-sucesso">Instalado</span>
-                      ) : (
-                        <Button
-                          tamanho="sm"
-                          disabled={servidorLigado || moedas < so.preco}
-                          carregando={processando === `instalar-so-${so.id}`}
-                          onClick={() =>
-                            acaoInfra(
-                              `instalar-so-${so.id}`,
-                              "/api/servidores/sistema/instalar",
-                              { osId: so.id },
-                              "Sistema operacional instalado.",
-                            )
-                          }
-                          title={servidorLigado ? "Desligue o servidor antes de instalar SO" : ""}
-                        >
-                          {so.preco} cr
-                        </Button>
-                      )
-                    }
-                  />
-                ))}
+              <SecaoCatalogo titulo="Mídias de sistema operacional">
+                {infra.catalogoSO.map((so) => {
+                  const midiaComprada = infra.midiasSistema.midiasSo.includes(so.id);
+                  const instalado = infra.sistemaOperacional === so.id;
+                  return (
+                    <CardMercado
+                      key={so.id}
+                      icone={so.icone}
+                      titulo={so.nome}
+                      descricao={`${so.descricao} Mídia ${midiaComprada ? "na bancada" : "não comprada"}${
+                        instalado ? "; instalado no disco" : ""
+                      }.`}
+                      acao={
+                        midiaComprada ? (
+                          <span className="text-xs font-semibold text-sucesso">
+                            {instalado ? "Mídia disponível · instalado" : "Mídia disponível"}
+                          </span>
+                        ) : (
+                          <Button
+                            tamanho="sm"
+                            disabled={moedas < so.preco}
+                            carregando={processando === `comprar-midia-${so.id}`}
+                            onClick={() =>
+                              acaoInfra(
+                                `comprar-midia-${so.id}`,
+                                "/api/servidores/sistema/midia/comprar",
+                                { osId: so.id },
+                                "Mídia de instalação comprada.",
+                              )
+                            }
+                            title={moedas < so.preco ? "Créditos insuficientes" : ""}
+                          >
+                            Comprar mídia {so.preco} cr
+                          </Button>
+                        )
+                      }
+                    />
+                  );
+                })}
               </SecaoCatalogo>
             </>
           )}
@@ -320,7 +338,7 @@ export default function Loja() {
           ) : (
             <>
               <div className="cartao rounded-2xl p-4 text-sm text-texto-suave">
-                Apps são comprados aqui e instalados no servidor. O servidor precisa estar ligado e com SO instalado.
+                Apps são comprados aqui e instalados no servidor. O servidor precisa estar ligado pelo disco, com SO instalado.
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {infra.catalogoApps.map((app) => {
@@ -350,7 +368,9 @@ export default function Loja() {
                             }
                             title={
                               !servidorOnline
-                                ? "Ligue o servidor antes de instalar apps"
+                                ? infra.midiasSistema.midiaBoot
+                                  ? "Ejete a mídia e ligue pelo disco antes de instalar apps"
+                                  : "Ligue o servidor antes de instalar apps"
                                 : !infra.sistemaOperacional
                                   ? "Instale um SO antes"
                                   : capacidadeInsuficiente
