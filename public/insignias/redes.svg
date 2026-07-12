@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Insignia Redes">
+  <defs>
+    <linearGradient id="netA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#netA)"/>
+  <circle cx="64" cy="64" r="26" fill="none" stroke="#dbeafe" stroke-width="4"/>
+  <circle cx="64" cy="64" r="10" fill="#dbeafe"/>
+  <circle cx="64" cy="30" r="6" fill="#e0f2fe"/>
+  <circle cx="96" cy="64" r="6" fill="#e0f2fe"/>
+  <circle cx="64" cy="98" r="6" fill="#e0f2fe"/>
+  <circle cx="32" cy="64" r="6" fill="#e0f2fe"/>
+  <line x1="64" y1="64" x2="64" y2="30" stroke="#e0f2fe" stroke-width="3"/>
+  <line x1="64" y1="64" x2="96" y2="64" stroke="#e0f2fe" stroke-width="3"/>
+  <line x1="64" y1="64" x2="64" y2="98" stroke="#e0f2fe" stroke-width="3"/>
+  <line x1="64" y1="64" x2="32" y2="64" stroke="#e0f2fe" stroke-width="3"/>
+  <rect x="24" y="96" width="80" height="16" rx="8" fill="#0b1220" opacity="0.85"/>
+  <text x="64" y="108" text-anchor="middle" font-family="Segoe UI, Tahoma, sans-serif" font-size="10" font-weight="700" fill="#f8fafc">REDES</text>
+</svg>

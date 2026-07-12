@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type MouseEvent } from "react";
 import "@/app/desktop.css";
 import { useToast } from "@/components/Toast";
-import { geracaoPorNotebook } from "@/content/geracoesPc";
+import { geracaoPorNotebook, type GeracaoPcId } from "@/content/geracoesPc";
 import IconeDesktop from "@/components/desktop/IconeDesktop";
 import Janela, { type JanelaEstado } from "@/components/desktop/Janela";
 import Taskbar from "@/components/desktop/Taskbar";
@@ -34,6 +34,7 @@ import Projetos from "@/components/desktop/programas/Projetos";
 import Msn from "@/components/desktop/programas/Msn";
 import MsnChat from "@/components/desktop/programas/MsnChat";
 import MsnNotifier from "@/components/desktop/MsnNotifier";
+import { MsnStoreProvider } from "@/components/desktop/MsnStore";
 import { tocarPower } from "@/lib/som";
 import IconePastaDesktop from "@/components/desktop/IconePastaDesktop";
 import PastaJanela from "@/components/desktop/PastaJanela";
@@ -172,6 +173,29 @@ const ORDEM_ICONES: ProgramaId[] = [
   "leiame",
   "lixeira",
 ];
+
+function pesoJanela(programaId: ProgramaId, pastas: PastaDesktop[], payload?: unknown): number {
+  switch (programaId) {
+    case "ide":
+    case "projetos":
+    case "msn":
+    case "msn_chat":
+    case "invasor":
+      return 2;
+    case "pasta": {
+      const pastaId = (payload as { pastaId?: string } | undefined)?.pastaId;
+      const pasta = pastas.find((item) => item.id === pastaId);
+      const excesso = Math.floor((pasta?.entradas.length ?? 0) / 8);
+      return 1 + Math.min(2, excesso);
+    }
+    default:
+      return 1;
+  }
+}
+
+function usoRamAtual(janelas: JanelaEstado[], pastas: PastaDesktop[]) {
+  return janelas.reduce((total, janela) => total + pesoJanela(janela.id as ProgramaId, pastas, janela.payload), 0);
+}
 
 type EstadoDesktop = {
   janelas: JanelaEstado[];
@@ -382,6 +406,7 @@ export default function Desktop({
   ide,
   sistemaOperacional,
   possuiMidiaInstalacao = false,
+  geracaoForcada,
 }: {
   equipados: string[];
   velocidade: number;
@@ -399,8 +424,9 @@ export default function Desktop({
   ide?: IdeProgramaProps;
   sistemaOperacional?: EstadoSistemaOperacional;
   possuiMidiaInstalacao?: boolean;
+  geracaoForcada?: GeracaoPcId;
 }) {
-  const geracao = geracaoPorNotebook(equipados);
+  const geracao = geracaoForcada ?? geracaoPorNotebook(equipados);
   const { mostrar } = useToast();
   const [ligado, setLigado] = useState(() => (sempreLigado ? true : lerLigadoSalvo()));
   const [inicializando, setInicializando] = useState(false);
@@ -434,6 +460,7 @@ export default function Desktop({
   );
   const [menuDesktop, setMenuDesktop] = useState<{ x: number; y: number } | null>(null);
   const menuDesktopRef = useRef<HTMLDivElement>(null);
+  const usoRam = useMemo(() => usoRamAtual(estado.janelas, pastas), [estado.janelas, pastas]);
 
   useEffect(() => {
     if (chavePastas) salvarPastasDesktop(chavePastasDesktop(chavePastas), pastas);
@@ -489,16 +516,17 @@ export default function Desktop({
   // se está no limite de apps abertos (reabrir/focar um já aberto sempre passa).
   // Fluxos internos (Alvos→Invasor, Projetos→IDE) e a auto-abertura usam
   // dispatch direto de propósito, pra não travar no meio de uma ação.
-  function abrirPrograma(programaId: ProgramaId) {
+  function abrirPrograma(programaId: ProgramaId, payload?: unknown) {
     const jaAberto = estado.janelas.some((j) => j.id === programaId);
-    if (!jaAberto && estado.janelas.length >= capacidadeRam) {
+    const pesoNovo = pesoJanela(programaId, pastas, payload);
+    if (!jaAberto && usoRam + pesoNovo > capacidadeRam) {
       mostrar(
-        `Memória cheia (${estado.janelas.length}/${capacidadeRam} apps). Feche um app ou instale mais RAM.`,
+        `Memória cheia (${usoRam}/${capacidadeRam} unidades). Feche um app ou instale mais RAM.`,
         "erro",
       );
       return;
     }
-    dispatch({ tipo: "abrir", programaId });
+    dispatch({ tipo: "abrir", programaId, payload });
   }
 
   const ligarDesktop = useCallback(() => {
@@ -541,12 +569,13 @@ export default function Desktop({
       .sort((a, b) => b.zIndex - a.zIndex)[0]?.id ?? null;
 
   return (
-    <div
-      className="desktop"
-      data-geracao={geracao}
-      ref={desktopRef}
-      onContextMenu={aoContextMenuDesktop}
-    >
+    <MsnStoreProvider>
+      <div
+        className="desktop"
+        data-geracao={geracao}
+        ref={desktopRef}
+        onContextMenu={aoContextMenuDesktop}
+      >
       <div className="desktop-icones">
         {ORDEM_ICONES.map((id) => (
           <IconeDesktop
@@ -649,6 +678,8 @@ export default function Desktop({
         janelas={estado.janelas}
         geracao={geracao}
         janelaAtivaId={janelaAtiva}
+        ramUsada={usoRam}
+        capacidadeRam={capacidadeRam}
         programas={ORDEM_ICONES.map((id) => ({
           id,
           rotulo: PROGRAMAS[id].rotuloIcone,
@@ -671,6 +702,7 @@ export default function Desktop({
           dispatch({ tipo: "abrir", programaId: "msn_chat", payload: { contatoId } })
         }
       />
-    </div>
+      </div>
+    </MsnStoreProvider>
   );
 }

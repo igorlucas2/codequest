@@ -13,6 +13,8 @@
 //     como professora nem explica como manual — ela dá ordem e contexto de
 //     rua. Sem emoji no meio da fala.
 
+import type { Ficha } from "@/content/classes";
+
 export const FIXER = {
   handle: "VESPER",
   papel: "Fixer",
@@ -77,3 +79,63 @@ export const EPILOGO_TRILHA1 = {
     "Descansa o deck e reforça a infra. Quando a próxima trilha abrir, o serviço é mais pesado — e o pagamento também. Não some.",
   ],
 } as const;
+
+// --- VESPER no MSN ---------------------------------------------------------
+// A Fixer também é um contato de sistema no Messenger: um canal de transmissão
+// só-leitura (o runner não responde) que reage ao progresso dele. Não é um
+// usuário real do banco — é injetado sinteticamente pela API do MSN com este
+// id sentinela negativo (ids reais são sempre > 0), então nunca colide com
+// contato de verdade.
+export const VESPER_MSN_ID = -1;
+
+// Ficha fixa pro avatar dela na lista/conversa do MSN (paleta neon da casa).
+export const FICHA_VESPER: Ficha = {
+  classe: "pentester",
+  raca: "rust",
+  corPele: "2ce6ff",
+  corPrincipal: "ff2e63",
+  avatarModo: "robo",
+  fotoUrl: null,
+};
+
+// Prévia mostrada na lista de contatos (a conversa em si reage ao progresso).
+export const VESPER_MSN_PREVIA = "Canal seguro — contratos e dicas de rua.";
+
+// Base sintética do contato VESPER no MSN. A rota completa campos dinâmicos
+// como timestamps, mas o resto vem daqui para não duplicar a definição.
+export function contatoBaseVesperMsn() {
+  return {
+    id: VESPER_MSN_ID,
+    nome: FIXER.handle,
+    ficha: FICHA_VESPER,
+    xp: 0,
+    online: true,
+    naoLidas: 0,
+    ultimaMensagem: {
+      id: -1,
+      texto: VESPER_MSN_PREVIA,
+      minha: false,
+    },
+  };
+}
+
+// Mensagens que a VESPER "envia" ao abrir a conversa, moldadas pelo progresso
+// do runner na trilha. Geradas no servidor (ver api/msn/mensagens).
+export function transmissoesMsnVesper(concluidas: number, total: number): string[] {
+  const msgs = [
+    "Canal seguro, runner. Aqui é a VESPER. Se a Rede aberta ficar quente, é por aqui que a gente fala.",
+  ];
+  if (concluidas <= 0) {
+    msgs.push("Você ainda não fechou nenhum contrato. Abre a Trilha e começa pelo primeiro — eu te cubro.");
+  } else if (concluidas >= total) {
+    msgs.push("Você derrubou o ICE e saiu com nome. Descansa o deck: a próxima leva vem pesada.");
+  } else {
+    msgs.push(
+      `${concluidas} de ${total} contratos fechados. Ritmo bom — mas não relaxa, o ICE do final não perdoa amador.`,
+    );
+  }
+  msgs.push(
+    "Dica de rua: hardware melhor = boot mais rápido e mais apps na memória. O Mercado não é decoração.",
+  );
+  return msgs;
+}

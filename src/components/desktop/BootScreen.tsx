@@ -45,12 +45,13 @@ function BootProgress({
   geracao,
   progresso,
   status,
+  sistema,
 }: {
   geracao: GeracaoPcId;
   progresso: number;
   status: string;
+  sistema: { rotulo: string; subtitulo: string };
 }) {
-  const sistema = SISTEMA_BOOT[geracao];
   const porcentagem = Math.max(0, Math.min(100, Math.round(progresso)));
 
   return (
@@ -75,29 +76,42 @@ function BootProgress({
 export default function BootScreen({
   geracao,
   velocidade,
+  sistemaNome,
+  sistemaIcone,
+  sistemaTema,
   postLinhas = POST_VAZIO,
   onAbrirSetup,
   aoConcluir,
 }: {
   geracao: GeracaoPcId;
   velocidade: number;
+  sistemaNome?: string;
+  sistemaIcone?: string;
+  sistemaTema?: GeracaoPcId;
   postLinhas?: string[];
   onAbrirSetup?: () => void;
   aoConcluir: () => void;
 }) {
   const duracao = duracaoBootMs(velocidade, geracao);
   const info = getGeracaoPc(geracao);
+  const tema = sistemaTema ?? geracao;
+  const sistemaVisual = {
+    rotulo: sistemaIcone ?? SISTEMA_BOOT[tema].rotulo,
+    subtitulo: sistemaNome ?? SISTEMA_BOOT[tema].subtitulo,
+  };
   const linhas = useMemo(() => {
-    const base = LINHAS_BOOT[geracao];
+    const base = LINHAS_BOOT[tema].map((linha) =>
+      linha.replaceAll("CodeQuest OS", sistemaVisual.subtitulo),
+    );
     return [...base.slice(0, 2), ...postLinhas, ...base.slice(2)];
-  }, [geracao, postLinhas]);
+  }, [postLinhas, sistemaVisual.subtitulo, tema]);
   const [linhasVisiveis, setLinhasVisiveis] = useState(0);
   const [progresso, setProgresso] = useState(0);
   const [setupDisponivel, setSetupDisponivel] = useState(Boolean(onAbrirSetup));
   const status = statusAtual(linhas, linhasVisiveis);
 
   useEffect(() => {
-    tocarBoot(geracao);
+    tocarBoot(tema);
 
     const concluirId = setTimeout(() => {
       setProgresso(100);
@@ -107,7 +121,7 @@ export default function BootScreen({
     return () => {
       clearTimeout(concluirId);
     };
-  }, [aoConcluir, duracao, geracao]);
+  }, [aoConcluir, duracao, tema]);
 
   useEffect(() => {
     if (!onAbrirSetup) return;
@@ -148,7 +162,7 @@ export default function BootScreen({
     return () => clearInterval(id);
   }, [duracao]);
 
-  if (geracao === "win98") {
+  if (tema === "win98") {
     return (
       <div className="boot-screen boot-screen--win98">
         <div className="boot-win98-cabecalho">
@@ -166,12 +180,17 @@ export default function BootScreen({
           ))}
           <span className="boot-cursor">_</span>
         </div>
-        <BootProgress geracao={geracao} progresso={progresso} status={status} />
+        <BootProgress
+          geracao={tema}
+          progresso={progresso}
+          status={status}
+          sistema={sistemaVisual}
+        />
       </div>
     );
   }
 
-  if (geracao === "xp") {
+  if (tema === "xp") {
     return (
       <div className="boot-screen boot-screen--xp">
         {setupDisponivel && onAbrirSetup && (
@@ -181,12 +200,17 @@ export default function BootScreen({
         )}
         <div className="boot-xp-logo">
           <span className="boot-os-icon boot-os-icon--xp" aria-hidden="true">
-            XP
+            {sistemaVisual.rotulo}
           </span>
           <p className="boot-xp-marca">{info.nome}</p>
           <p className="boot-xp-subtitulo">Iniciando sessao do runner</p>
         </div>
-        <BootProgress geracao={geracao} progresso={progresso} status={status} />
+        <BootProgress
+          geracao={tema}
+          progresso={progresso}
+          status={status}
+          sistema={sistemaVisual}
+        />
       </div>
     );
   }
@@ -199,10 +223,10 @@ export default function BootScreen({
         </button>
       )}
       <div className="boot-neon-painel">
-        <p className="boot-neon-eyebrow">CODEQUEST OS</p>
+        <p className="boot-neon-eyebrow">{sistemaVisual.subtitulo}</p>
         <div className="boot-neon-titulo-linha">
           <span className="boot-os-icon boot-os-icon--neon" aria-hidden="true">
-            CQ
+          {sistemaVisual.rotulo}
           </span>
           <p className="boot-neon-titulo">Subindo deck pessoal</p>
         </div>
@@ -214,7 +238,12 @@ export default function BootScreen({
             </p>
           ))}
         </div>
-        <BootProgress geracao={geracao} progresso={progresso} status={status} />
+        <BootProgress
+          geracao={tema}
+          progresso={progresso}
+          status={status}
+          sistema={sistemaVisual}
+        />
       </div>
     </div>
   );

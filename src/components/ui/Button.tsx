@@ -12,8 +12,8 @@ const VARIANTES: Record<Variante, string> = {
 };
 
 const TAMANHOS: Record<Tamanho, string> = {
-  sm: "gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
-  md: "gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold",
+  sm: "gap-1.5 deck-cut px-3 py-1.5 text-xs font-semibold uppercase tracking-wide",
+  md: "gap-2 deck-cut px-6 py-2.5 text-sm font-semibold uppercase tracking-wide",
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

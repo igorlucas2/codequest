@@ -17,6 +17,8 @@ export default function Taskbar({
   geracao,
   janelaAtivaId,
   programas,
+  ramUsada,
+  capacidadeRam,
   onClicarJanela,
   onAbrirPrograma,
   onOrganizar,
@@ -25,10 +27,16 @@ export default function Taskbar({
   geracao: GeracaoPcId;
   janelaAtivaId: string | null;
   programas: ProgramaMenu[];
+  // Uso equivalente de RAM e teto vindo do nível de RAM. Só é exibido quando
+  // o teto é finito (na página do Computador).
+  ramUsada: number;
+  capacidadeRam: number;
   onClicarJanela: (janela: JanelaEstado) => void;
   onAbrirPrograma: (id: string) => void;
   onOrganizar: () => void;
 }) {
+  const mostrarRam = Number.isFinite(capacidadeRam);
+  const ramCheia = mostrarRam && ramUsada >= capacidadeRam;
   const podeOrganizar = janelas.filter((j) => !j.minimizada).length >= 2;
   const [menuAberto, setMenuAberto] = useState(false);
   const ancoraRef = useRef<HTMLDivElement>(null);
@@ -100,6 +108,16 @@ export default function Taskbar({
           ))}
         </div>
       </div>
+      {mostrarRam && (
+        <span
+          className={`taskbar-relogio taskbar-relogio--${geracao}`}
+          style={ramCheia ? { color: "var(--color-erro)" } : undefined}
+          title={`RAM: ${ramUsada} de ${capacidadeRam} unidades em uso`}
+          aria-label={`Memória: ${ramUsada} de ${capacidadeRam} unidades em uso`}
+        >
+          💾 {ramUsada}/{capacidadeRam}
+        </span>
+      )}
       <Relogio geracao={geracao} />
     </div>
   );

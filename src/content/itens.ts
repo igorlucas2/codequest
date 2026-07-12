@@ -4,7 +4,7 @@
 // auxiliares de efeito misto. Hardware (notebook/ram/peça) é o deck pessoal
 // do runner — eixo separado, dá "velocidade" de acesso a terminais.
 // Conteúdo fixo, versionável no código.
-import { MIDIA_CODEQUEST_OS_ITEM_ID } from "@/content/computador";
+import { SISTEMAS_COMPUTADOR } from "@/content/computador";
 
 export type TipoItem = "exploit" | "seguranca" | "protocolo" | "notebook" | "ram" | "peca" | "midia";
 
@@ -46,7 +46,7 @@ export const SLOTS: {
   { tipo: "notebook", nome: "Notebook", icone: "💻", grupo: "hardware" },
   { tipo: "ram", nome: "Memória RAM", icone: "💾", grupo: "hardware" },
   { tipo: "peca", nome: "Peças", icone: "🔧", grupo: "hardware" },
-  { tipo: "midia", nome: "Midia de Boot", icone: "💿", grupo: "hardware" },
+  { tipo: "midia", nome: "Midias do Computador", icone: "💿", grupo: "hardware" },
 ];
 
 export const ITENS: Item[] = [
@@ -73,7 +73,15 @@ export const ITENS: Item[] = [
   { id: "note-blackhat", nome: "Notebook BlackHat Ops", tipo: "notebook", icone: "🕶️", preco: 130, atributos: { velocidade: 14 }, raridade: "epico" },
 
   // Midias de boot do computador pessoal.
-  { id: MIDIA_CODEQUEST_OS_ITEM_ID, nome: "Pendrive CodeQuest OS", tipo: "midia", icone: "💿", preco: 10, atributos: {}, raridade: "comum" },
+  ...SISTEMAS_COMPUTADOR.map((sistema) => ({
+    id: sistema.itemId,
+    nome: sistema.nomeMidia,
+    tipo: "midia" as const,
+    icone: sistema.icone,
+    preco: sistema.preco,
+    atributos: {},
+    raridade: sistema.raridade,
+  })),
 
   // Memória RAM — menos travamento ao processar respostas de servidor.
   { id: "ram-4gb", nome: "Pente de RAM 4GB", tipo: "ram", icone: "💾", preco: 15, atributos: { velocidade: 2 }, raridade: "comum" },

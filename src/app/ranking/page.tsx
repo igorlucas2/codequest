@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import CyberAvatar from "@/components/CyberAvatar";
-import NavRpg from "@/components/NavRpg";
+import AppShell from "@/components/AppShell";
 import { useSessao } from "@/components/Sessao";
 import { SkeletonCartoes } from "@/components/Skeleton";
 import type { Ficha } from "@/content/classes";
@@ -43,30 +44,27 @@ export default function Ranking() {
 
   if (!carregado || !usuario) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-10">
-        <NavRpg />
+      <AppShell largura="max-w-4xl">
         <div className="mt-8">
           <SkeletonCartoes quantidade={6} />
         </div>
-      </main>
+      </AppShell>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <NavRpg />
-
-      <header className="mt-6">
+    <AppShell largura="max-w-4xl">
+      <header>
         <h1 className="titulo text-3xl font-black text-ouro">Ranking da Rede</h1>
         <p className="text-texto-suave">
           Quem estudou e construiu o melhor servidor lidera. Suba de posição!
         </p>
       </header>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         <button
           onClick={() => setAba("poder")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+          className={`deck-cut border px-3 py-2 text-sm font-semibold transition ${
             aba === "poder" ? "bg-primaria/20 text-primaria" : "text-texto-suave hover:text-texto"
           }`}
         >
@@ -74,7 +72,7 @@ export default function Ranking() {
         </button>
         <button
           onClick={() => setAba("receita")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+          className={`deck-cut border px-3 py-2 text-sm font-semibold transition ${
             aba === "receita" ? "bg-primaria/20 text-primaria" : "text-texto-suave hover:text-texto"
           }`}
         >
@@ -91,51 +89,53 @@ export default function Ranking() {
             .map((l, i) => {
               const sou = l.id === meuId;
               return (
-                <li
-                  key={l.id}
-                  className={`cartao flex items-center gap-3 rounded-2xl p-3 ${
-                    sou ? "cartao-ouro" : ""
-                  }`}
-                >
-                  <span className="w-8 text-center text-lg font-bold">
-                    {MEDALHAS[i] ?? <span className="text-texto-suave">{i + 1}</span>}
-                  </span>
-                  <div className="shrink-0 rounded-lg bg-fundo/60 p-0.5">
-                    <CyberAvatar
-                      classe={l.ficha.classe}
-                      corPele={l.ficha.corPele}
-                      corPrincipal={l.ficha.corPrincipal}
-                      avatarModo={l.ficha.avatarModo}
-                      fotoUrl={l.ficha.fotoUrl}
-                      tamanho={40}
-                      className="rounded-md"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">
-                      {l.nome} {sou && <span className="text-xs text-ouro">(você)</span>}
-                    </p>
-                    <p className="text-xs text-texto-suave">
-                      Nível {l.nivel} · {l.vitorias}{" "}
-                      {l.vitorias === 1 ? "invasão bem-sucedida" : "invasões bem-sucedidas"}
-                    </p>
-                  </div>
-                  <span className="shrink-0 font-bold text-arcano">
-                    {aba === "poder" ? (
-                      <>
-                        {l.poder} <span className="text-xs font-normal text-texto-suave">poder</span>
-                      </>
-                    ) : (
-                      <>
-                        {l.receita} <span className="text-xs font-normal text-texto-suave">cr coletados</span>
-                      </>
-                    )}
-                  </span>
+                <li key={l.id}>
+                  <Link
+                    href={`/perfil/${l.id}`}
+                    className={`cartao flex items-center gap-3 rounded-2xl p-3 transition hover:border-primaria/60 ${
+                      sou ? "cartao-ouro" : ""
+                    }`}
+                  >
+                    <span className="w-8 text-center text-lg font-bold">
+                      {MEDALHAS[i] ?? <span className="text-texto-suave">{i + 1}</span>}
+                    </span>
+                    <div className="shrink-0 rounded-lg bg-fundo/60 p-0.5">
+                      <CyberAvatar
+                        classe={l.ficha.classe}
+                        corPele={l.ficha.corPele}
+                        corPrincipal={l.ficha.corPrincipal}
+                        avatarModo={l.ficha.avatarModo}
+                        fotoUrl={l.ficha.fotoUrl}
+                        tamanho={40}
+                        className="rounded-md"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">
+                        {l.nome} {sou && <span className="text-xs text-ouro">(você)</span>}
+                      </p>
+                      <p className="text-xs text-texto-suave">
+                        Nível {l.nivel} · {l.vitorias}{" "}
+                        {l.vitorias === 1 ? "invasão bem-sucedida" : "invasões bem-sucedidas"}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-bold text-arcano">
+                      {aba === "poder" ? (
+                        <>
+                          {l.poder} <span className="text-xs font-normal text-texto-suave">poder</span>
+                        </>
+                      ) : (
+                        <>
+                          {l.receita} <span className="text-xs font-normal text-texto-suave">cr coletados</span>
+                        </>
+                      )}
+                    </span>
+                  </Link>
                 </li>
               );
             })}
         </ol>
       )}
-    </main>
+    </AppShell>
   );
 }

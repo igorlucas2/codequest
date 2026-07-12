@@ -163,7 +163,7 @@ export default function SalaDeEquipamentos({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="min-w-0 max-w-full overflow-x-auto">
       <div
         className="relative mx-auto rounded-xl border border-borda/60"
         style={{

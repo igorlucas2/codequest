@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Insignia JavaScript">
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#facc15"/>
+  <rect x="24" y="24" width="80" height="80" rx="12" fill="#fef08a"/>
+  <text x="64" y="74" text-anchor="middle" font-family="Segoe UI, Tahoma, sans-serif" font-size="38" font-weight="800" fill="#111827">JS</text>
+  <rect x="24" y="96" width="80" height="16" rx="8" fill="#111827" opacity="0.9"/>
+  <text x="64" y="108" text-anchor="middle" font-family="Segoe UI, Tahoma, sans-serif" font-size="10" font-weight="700" fill="#f8fafc">JAVASCRIPT</text>
+</svg>

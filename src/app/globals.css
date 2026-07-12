@@ -3,28 +3,31 @@
 /* CodeQuest - Netrunner Clean
    Mantem os nomes antigos das variaveis para evitar churn no JSX. A imersao
    fica nos sistemas do jogo; o shell da aplicacao fica mais calmo e legivel. */
+/* Paleta Deus Ex: Human Revolution — dourado/âmbar sobre preto quente.
+   Os nomes das variaveis sao legados (ouro/primaria); os valores agora sao
+   dourados. Trocar aqui recolore o app inteiro (Tailwind v4 usa var()). */
 @theme {
-  --color-fundo: #090b0f;
-  --color-fundo-card: #10141a;
-  --color-fundo-fosco: #151a21;
-  --color-borda: #26303a;
-  --color-borda-ouro: #31515a;
+  --color-fundo: #0b0805;
+  --color-fundo-card: #14100a;
+  --color-fundo-fosco: #1b1509;
+  --color-borda: #3d3119;
+  --color-borda-ouro: #6a5220;
 
-  --color-ouro: #55d7e5;
-  --color-ouro-claro: #c5f4f8;
-  --color-arcano: #8b5cf6;
-  --color-arcano-forte: #7c3aed;
-  --color-sangue: #ef476f;
-  --color-esmeralda: #34d399;
+  --color-ouro: #e8b23a;
+  --color-ouro-claro: #ffd76a;
+  --color-arcano: #c98a2a;
+  --color-arcano-forte: #a9741f;
+  --color-sangue: #d8542f;
+  --color-esmeralda: #a6d24a;
 
-  --color-texto: #e6edf3;
-  --color-texto-suave: #8a97a6;
+  --color-texto: #f0e6cf;
+  --color-texto-suave: #9a8f78;
 
-  --color-primaria: #2aa9b8;
-  --color-primaria-forte: #1d8c99;
-  --color-destaque: #e5b85c;
-  --color-sucesso: #34d399;
-  --color-erro: #ef476f;
+  --color-primaria: #e8b23a;
+  --color-primaria-forte: #ffcf5e;
+  --color-destaque: #ffcf5e;
+  --color-sucesso: #a6d24a;
+  --color-erro: #e0714a;
 
   --font-display: var(--font-display), "Orbitron", sans-serif;
   --font-body: var(--font-body), system-ui, sans-serif;
@@ -40,12 +43,14 @@ body {
   color: var(--color-texto);
   font-family: var(--font-body);
   background-color: var(--color-fundo);
+  /* Fundo sutil global (estatico): vinheta quente + grade dourada fina. */
   background-image:
-    linear-gradient(180deg, #090b0f 0%, #0b0e13 58%, #090b0f 100%),
-    linear-gradient(rgba(85, 215, 229, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(85, 215, 229, 0.018) 1px, transparent 1px);
-  background-size: auto, 56px 56px, 56px 56px;
-  background-position: center, center top, center top;
+    radial-gradient(130% 90% at 50% 0%, rgba(90, 64, 20, 0.22) 0%, transparent 58%),
+    linear-gradient(180deg, #0b0805 0%, #0d0a06 58%, #0b0805 100%),
+    linear-gradient(rgba(232, 178, 58, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 178, 58, 0.028) 1px, transparent 1px);
+  background-size: auto, auto, 56px 56px, 56px 56px;
+  background-position: center, center, center top, center top;
   background-attachment: fixed;
 }
 
@@ -59,17 +64,28 @@ body::after {
   text-shadow: none;
 }
 
+/* Painel angular (HUD Deus Ex): cantos chanfrados via clip-path + brilho
+   dourado sutil. clip-path esconde box-shadow, entao a profundidade vem de
+   drop-shadow no filtro. */
 .cartao {
-  background: color-mix(in srgb, var(--color-fundo-card) 92%, black);
+  background:
+    linear-gradient(180deg, rgba(232, 178, 58, 0.035), transparent 55%),
+    color-mix(in srgb, var(--color-fundo-card) 90%, black);
   border: 1px solid var(--color-borda);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  border-radius: 0;
+  clip-path: polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  box-shadow: inset 0 0 0 1px rgba(232, 178, 58, 0.05);
 }
 
 .cartao-ouro {
-  border-color: color-mix(in srgb, var(--color-ouro) 28%, var(--color-borda));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 10px 28px rgba(0, 0, 0, 0.26);
+  border-color: color-mix(in srgb, var(--color-ouro) 40%, var(--color-borda));
+  box-shadow: inset 0 0 0 1px rgba(232, 178, 58, 0.1);
+}
+
+/* Corte angular para botoes/links futuristas. */
+.deck-cut {
+  border-radius: 0 !important;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
 
 .filete-ouro {

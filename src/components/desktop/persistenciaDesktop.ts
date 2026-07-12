@@ -1,3 +1,8 @@
+import {
+  ehSistemaComputadorId,
+  type SistemaComputadorId,
+} from "@/content/computador";
+
 // Persistência do estado do desktop emulado (boot já feito + janelas
 // abertas) em sessionStorage — sem isso, sair de /computador pra qualquer
 // outra tela e voltar refazia o boot inteiro e fechava tudo, porque
@@ -37,6 +42,7 @@ export type EstadoSistemaOperacional = {
   nomeMaquina: string;
   instaladoEm: string | null;
   midiaConectada: boolean;
+  midiaSistemaId: SistemaComputadorId | null;
   bootPreferido: DispositivoBoot;
 };
 
@@ -93,6 +99,7 @@ export function estadoSistemaPadrao(
     nomeMaquina: `deck-${slugCurto(usuarioNome)}`,
     instaladoEm: null,
     midiaConectada: false,
+    midiaSistemaId: null,
     bootPreferido: "disco",
   };
 }
@@ -128,6 +135,9 @@ export function lerEstadoSistemaOperacional(
         typeof parsed.midiaConectada === "boolean"
           ? parsed.midiaConectada
           : padrao.midiaConectada,
+      midiaSistemaId: ehSistemaComputadorId(parsed.midiaSistemaId)
+        ? parsed.midiaSistemaId
+        : null,
       bootPreferido: ehDispositivoBoot(parsed.bootPreferido)
         ? parsed.bootPreferido
         : padrao.bootPreferido,

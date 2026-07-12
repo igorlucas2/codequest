@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { FASES, TRILHA, moedasDaFase } from "@/content/trilha1";
 import { useSessao } from "@/components/Sessao";
 import Hud from "@/components/Hud";
-import NavRpg from "@/components/NavRpg";
+import AppShell from "@/components/AppShell";
 import { SkeletonCartoes } from "@/components/Skeleton";
 import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
 
@@ -23,20 +23,17 @@ export default function MapaTrilha() {
 
   if (!carregado || !usuario) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-10">
-        <NavRpg />
+      <AppShell largura="max-w-5xl">
         <div className="mt-8">
           <SkeletonCartoes quantidade={5} />
         </div>
-      </main>
+      </AppShell>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <NavRpg />
-
-      <header className="mt-6">
+    <AppShell largura="max-w-5xl">
+      <header>
         <h1 className="titulo text-3xl font-black text-ouro">{TRILHA.titulo}</h1>
         <p className="text-texto-suave">{TRILHA.subtitulo}</p>
       </header>
@@ -46,21 +43,21 @@ export default function MapaTrilha() {
       </div>
 
       {/* Mapa de fases */}
-      <ol className="relative mt-8 space-y-3">
+      <ol className="relative mt-8 grid gap-3 md:grid-cols-2">
         {FASES.map((f, i) => {
           const concluida = faseConcluida(f.ordem);
           const desbloqueada = faseDesbloqueada(f.ordem);
 
           const conteudo = (
             <div
-              className={`flex items-center gap-4 rounded-2xl border p-4 transition ${
+              className={`cartao flex h-full items-center gap-4 p-4 transition ${
                 desbloqueada
                   ? "border-borda bg-fundo-card hover:border-primaria"
                   : "border-borda/50 bg-fundo-card/40 opacity-60"
               }`}
             >
               <span
-                className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl ${
+                className={`deck-cut grid h-12 w-12 shrink-0 place-items-center text-2xl ${
                   concluida ? "bg-sucesso/20" : "bg-fundo"
                 }`}
               >
@@ -101,6 +98,6 @@ export default function MapaTrilha() {
           );
         })}
       </ol>
-    </main>
+    </AppShell>
   );
 }

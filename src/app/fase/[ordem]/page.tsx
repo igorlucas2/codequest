@@ -7,6 +7,7 @@ import { getFase, FASES } from "@/content/trilha1";
 import { FIXER, CABECALHO_TRANSMISSAO, EPILOGO_TRILHA1 } from "@/content/fixer";
 import { useSessao } from "@/components/Sessao";
 import Desafio from "@/components/Desafio";
+import AppShell from "@/components/AppShell";
 
 export default function PaginaFase() {
   const params = useParams<{ ordem: string }>();
@@ -22,35 +23,39 @@ export default function PaginaFase() {
 
   if (!fase) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16 text-center">
-        <p className="text-texto-suave">Contrato não encontrado.</p>
-        <Link href="/trilha" className="text-primaria">
-          Voltar ao mapa
-        </Link>
-      </main>
+      <AppShell largura="max-w-3xl">
+        <div className="cartao p-8 text-center">
+          <p className="text-texto-suave">Contrato não encontrado.</p>
+          <Link href="/trilha" className="text-primaria">
+            Voltar ao mapa
+          </Link>
+        </div>
+      </AppShell>
     );
   }
 
   if (!carregado || !usuario) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16 text-center text-texto-suave">
-        Carregando...
-      </main>
+      <AppShell largura="max-w-3xl">
+        <p className="py-16 text-center text-texto-suave">Carregando contrato...</p>
+      </AppShell>
     );
   }
 
   // Trava fases bloqueadas.
   if (!faseDesbloqueada(ordem)) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16 text-center">
-        <p className="text-4xl">🔒</p>
-        <p className="mt-4 text-texto-suave">
-          Conclua o contrato anterior para desbloquear este.
-        </p>
-        <Link href="/trilha" className="mt-4 inline-block text-primaria">
-          ← Voltar ao mapa
-        </Link>
-      </main>
+      <AppShell largura="max-w-3xl">
+        <div className="cartao p-8 text-center">
+          <p className="text-4xl">🔒</p>
+          <p className="mt-4 text-texto-suave">
+            Conclua o contrato anterior para desbloquear este.
+          </p>
+          <Link href="/trilha" className="mt-4 inline-block text-primaria">
+            ← Voltar ao mapa
+          </Link>
+        </div>
+      </AppShell>
     );
   }
 
@@ -58,13 +63,13 @@ export default function PaginaFase() {
   const proxima = FASES.find((f) => f.ordem === ordem + 1);
 
   return (
-    <main className="mx-auto max-w-[92rem] px-6 py-10">
+    <AppShell largura="max-w-[96rem]">
       <Link href="/trilha" className="text-sm text-texto-suave hover:text-texto">
         ← Mapa da trilha
       </Link>
 
       <header className="mt-6 flex items-center gap-4">
-        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primaria/15 text-3xl">
+        <span className="deck-cut grid h-14 w-14 place-items-center border border-primaria/30 bg-primaria/15 text-3xl">
           {fase.emoji}
         </span>
         <div>
@@ -85,7 +90,7 @@ export default function PaginaFase() {
 
         <div className="space-y-4">
           {/* Briefing — transmissão da Fixer para este contrato. */}
-          <section className="rounded-2xl border border-borda bg-fundo-card p-5">
+          <section className="cartao p-5">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-ouro">📡 {CABECALHO_TRANSMISSAO}</p>
               <span className="text-[10px] uppercase tracking-widest text-texto-suave">
@@ -98,7 +103,7 @@ export default function PaginaFase() {
           </section>
 
           {/* Conceito */}
-          <section className="rounded-2xl border border-borda bg-fundo-card p-5">
+          <section className="cartao p-5">
             <p className="text-sm font-semibold text-destaque">🧠 O conceito</p>
             <p className="mt-2 text-texto">{fase.conceito}</p>
           </section>
@@ -108,7 +113,7 @@ export default function PaginaFase() {
             <p className="mb-2 text-sm font-semibold text-texto-suave">
               Exemplo em Python
             </p>
-            <pre className="codigo overflow-x-auto rounded-2xl border border-borda bg-fundo p-4 text-destaque">
+            <pre className="codigo deck-cut overflow-x-auto border border-borda bg-fundo p-4 text-destaque">
               {fase.exemplo}
             </pre>
           </section>
@@ -120,7 +125,7 @@ export default function PaginaFase() {
           (último contrato da trilha concluído). Fecha o arco e planta o gancho
           da próxima trilha. */}
       {jaConcluida && !proxima && (
-        <section className="mt-8 rounded-2xl border border-ouro/40 bg-gradient-to-b from-ouro/10 to-transparent p-6">
+        <section className="cartao cartao-ouro mt-8 bg-gradient-to-b from-ouro/10 to-transparent p-6">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-ouro">📡 {CABECALHO_TRANSMISSAO}</p>
             <span className="text-[10px] uppercase tracking-widest text-texto-suave">
@@ -156,6 +161,6 @@ export default function PaginaFase() {
           )}
         </div>
       )}
-    </main>
+    </AppShell>
   );
 }

@@ -1,8 +1,20 @@
 "use client";
 
-import { COMPONENTES, nivelDe, type NiveisComponentes } from "@/content/componentes";
+import {
+  COMPONENTES,
+  nivelDe,
+  capacidadeDisco,
+  capacidadeRam,
+  velocidadeHardware,
+  type NiveisComponentes,
+} from "@/content/componentes";
 import { getGeracaoPc, type GeracaoPcId } from "@/content/geracoesPc";
 import { ITENS } from "@/content/itens";
+import {
+  getSistemaComputador,
+  type SistemaComputador,
+  type SistemaComputadorId,
+} from "@/content/computador";
 import { duracaoBootMs } from "@/lib/velocidade";
 import type {
   DispositivoBoot,
@@ -15,7 +27,7 @@ export default function BiosSetup({
   componentes,
   velocidade,
   sistemaOperacional,
-  possuiMidiaInstalacao,
+  midiasInstalacao,
   onAlterarSistema,
   onContinuar,
   onDesligar,
@@ -25,7 +37,7 @@ export default function BiosSetup({
   componentes: NiveisComponentes;
   velocidade: number;
   sistemaOperacional: EstadoSistemaOperacional;
-  possuiMidiaInstalacao: boolean;
+  midiasInstalacao: SistemaComputadorId[];
   onAlterarSistema: (estado: EstadoSistemaOperacional) => void;
   onContinuar: () => void;
   onDesligar: () => void;
@@ -33,7 +45,18 @@ export default function BiosSetup({
   const sistema = getGeracaoPc(geracao);
   const notebook = ITENS.find((item) => item.tipo === "notebook" && equipados.includes(item.id));
   const boot = Math.round(duracaoBootMs(velocidade, geracao) / 1000);
-  const midiaConectada = possuiMidiaInstalacao && sistemaOperacional.midiaConectada;
+  const midiasPossuidas = midiasInstalacao
+    .map(getSistemaComputador)
+    .filter((midia): midia is SistemaComputador => Boolean(midia));
+  const midiaSelecionada = getSistemaComputador(sistemaOperacional.midiaSistemaId);
+  const midiaConectada = Boolean(
+    midiaSelecionada &&
+      midiasInstalacao.includes(midiaSelecionada.id) &&
+      sistemaOperacional.midiaConectada,
+  );
+  const ramUtil = capacidadeRam(componentes);
+  const discoUtil = capacidadeDisco(componentes);
+  const velTotal = velocidadeHardware(componentes);
 
   function selecionarBoot(dispositivo: DispositivoBoot) {
     if (dispositivo === "usb" && !midiaConectada) {
@@ -42,12 +65,13 @@ export default function BiosSetup({
     onAlterarSistema({ ...sistemaOperacional, bootPreferido: dispositivo });
   }
 
-  function alternarMidia() {
-    if (!possuiMidiaInstalacao) return;
+  function alternarMidia(midiaId: SistemaComputadorId) {
+    const estaConectada = midiaConectada && sistemaOperacional.midiaSistemaId === midiaId;
     onAlterarSistema({
       ...sistemaOperacional,
-      midiaConectada: !midiaConectada,
-      bootPreferido: midiaConectada ? "disco" : "usb",
+      midiaConectada: !estaConectada,
+      midiaSistemaId: estaConectada ? null : midiaId,
+      bootPreferido: estaConectada ? "disco" : "usb",
     });
   }
 
@@ -96,6 +120,18 @@ export default function BiosSetup({
                 </div>
               );
             })}
+            <div style={{ borderTop: "1px solid currentColor", opacity: 0.85, marginTop: 4, paddingTop: 6 }}>
+              <span>Memoria util</span>
+              <strong>{ramUtil} apps</strong>
+            </div>
+            <div>
+              <span>Disco util</span>
+              <strong>{discoUtil} itens</strong>
+            </div>
+            <div>
+              <span>Velocidade</span>
+              <strong>+{velTotal}</strong>
+            </div>
           </div>
         </section>
 
@@ -109,7 +145,7 @@ export default function BiosSetup({
             >
               <span>1</span>
               Disco de projetos
-              <small>{sistemaOperacional.instalado ? "CodeQuest OS encontrado" : "Sem SO"}</small>
+              <small>{sistemaOperacional.instalado ? `${sistemaOperacional.versao} encontrado` : "Sem SO"}</small>
             </button>
             <button
               type="button"
@@ -121,10 +157,10 @@ export default function BiosSetup({
               Pendrive / Midia removivel
               <small>
                 {midiaConectada
-                  ? "Instalador CodeQuest OS conectado"
-                  : possuiMidiaInstalacao
+                  ? `Instalador ${midiaSelecionada?.nome} conectado`
+                  : midiasPossuidas.length > 0
                     ? "Nenhuma midia conectada"
-                    : "Pendrive nao comprado"}
+                    : "Nenhuma midia comprada"}
               </small>
             </button>
             <button
@@ -141,25 +177,35 @@ export default function BiosSetup({
 
         <section className="bios-panel bios-panel--wide">
           <h3>Midia de Instalacao</h3>
-          <div className="bios-media-row">
-            <div>
-              <strong>Pendrive CodeQuest OS</strong>
-              <span>
-                {midiaConectada
-                  ? "Conectado na porta USB"
-                  : possuiMidiaInstalacao
-                    ? "Guardado na mochila do runner"
-                    : "Compre o pendrive no Mercado para liberar boot USB"}
-              </span>
+          {midiasPossuidas.length === 0 ? (
+            <div className="bios-media-row">
+              <div>
+                <strong>Nenhuma midia disponivel</strong>
+                <span>Compre um instalador no Mercado para liberar boot removivel.</span>
+              </div>
+              <button type="button" disabled>Sem midia</button>
             </div>
-            <button type="button" onClick={alternarMidia} disabled={!possuiMidiaInstalacao}>
-              {!possuiMidiaInstalacao
-                ? "Sem midia"
-                : midiaConectada
-                  ? "Remover pendrive"
-                  : "Conectar pendrive"}
-            </button>
-          </div>
+          ) : (
+            midiasPossuidas.map((midia) => {
+              const conectada =
+                midiaConectada && sistemaOperacional.midiaSistemaId === midia.id;
+              return (
+                <div className="bios-media-row" key={midia.id}>
+                  <div>
+                    <strong>{midia.icone} {midia.nomeMidia}</strong>
+                    <span>
+                      {conectada
+                        ? "Conectada na unidade removivel"
+                        : "Guardada na mochila do runner"}
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => alternarMidia(midia.id)}>
+                    {conectada ? "Ejetar midia" : "Conectar"}
+                  </button>
+                </div>
+              );
+            })
+          )}
         </section>
       </main>
 

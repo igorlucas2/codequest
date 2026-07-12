@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { XP_TOTAL } from "@/content/trilha1";
 import { useSessao } from "@/components/Sessao";
-import Button from "@/components/ui/Button";
+import AppShell from "@/components/AppShell";
 
 type Aluno = {
   id: number;
@@ -22,7 +22,7 @@ type Aluno = {
 
 export default function PainelProfessor() {
   const router = useRouter();
-  const { carregado, usuario, sair } = useSessao();
+  const { carregado, usuario } = useSessao();
   const [alunos, setAlunos] = useState<Aluno[] | null>(null);
   const [totalFases, setTotalFases] = useState(0);
   const [erro, setErro] = useState<string | null>(null);
@@ -55,28 +55,27 @@ export default function PainelProfessor() {
 
   if (!carregado || usuario?.papel !== "professor") {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-16 text-center text-texto-suave">
-        Carregando...
-      </main>
+      <AppShell largura="max-w-6xl">
+        <p className="py-16 text-center text-texto-suave">Carregando console...</p>
+      </AppShell>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <Link href="/trilha" className="text-sm text-texto-suave hover:text-texto">
-          ← Trilha
+    <AppShell largura="max-w-6xl">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="titulo text-3xl font-black text-ouro">Console do Fixer</h1>
+          <p className="text-texto-suave">
+            Rede de runners sob seu contrato — trilha de Lógica de Programação.
+          </p>
+        </div>
+        <Link
+          href="/trilha"
+          className="deck-cut border border-borda bg-fundo-card px-4 py-2 text-sm font-semibold uppercase tracking-wide text-texto-suave transition hover:border-primaria hover:text-texto"
+        >
+          Voltar à trilha
         </Link>
-        <Button variante="fantasma" tamanho="sm" onClick={sair}>
-          Sair
-        </Button>
-      </div>
-
-      <header className="mt-6">
-        <h1 className="titulo text-3xl font-black text-ouro">Console do Fixer</h1>
-        <p className="text-texto-suave">
-          Rede de runners sob seu contrato — trilha de Lógica de Programação.
-        </p>
       </header>
 
       {erro && (
@@ -84,14 +83,14 @@ export default function PainelProfessor() {
       )}
 
       {alunos && alunos.length === 0 && (
-        <p className="mt-8 rounded-2xl border border-borda bg-fundo-card p-6 text-center text-texto-suave">
+        <p className="cartao mt-8 p-6 text-center text-texto-suave">
           Nenhum runner na sua rede ainda. Mande a turma se conectar em{" "}
           <span className="text-destaque">/entrar</span>.
         </p>
       )}
 
       {alunos && alunos.length > 0 && (
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-borda">
+        <div className="cartao mt-8 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-fundo-card text-texto-suave">
               <tr>
@@ -153,6 +152,6 @@ export default function PainelProfessor() {
           </table>
         </div>
       )}
-    </main>
+    </AppShell>
   );
 }

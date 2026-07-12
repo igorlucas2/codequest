@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import NavRpg from "@/components/NavRpg";
+import AppShell from "@/components/AppShell";
 import ComputadorMonitor from "@/components/desktop/ComputadorMonitor";
 import PainelHardware from "@/components/PainelHardware";
 import { capacidadeRam } from "@/content/componentes";
-import { MIDIA_CODEQUEST_OS_ITEM_ID } from "@/content/computador";
+import { getSistemaComputadorPorItem } from "@/content/computador";
 import { useSessao } from "@/components/Sessao";
 
 export default function Computador() {
@@ -19,17 +19,15 @@ export default function Computador() {
 
   if (!carregado || !usuario) {
     return (
-      <main className="mx-auto max-w-[68rem] px-6 py-16 text-center text-texto-suave">
-        Carregando...
-      </main>
+      <AppShell largura="max-w-[88rem]">
+        <p className="py-16 text-center text-texto-suave">Carregando computador...</p>
+      </AppShell>
     );
   }
 
   return (
-    <main className="mx-auto max-w-[68rem] px-6 py-10">
-      <NavRpg />
-
-      <header className="mt-6">
+    <AppShell largura="max-w-[88rem]">
+      <header>
         <h1 className="titulo text-3xl font-black text-ouro">Seu Computador</h1>
         <p className="text-texto-suave">
           Abra a IDE para organizar projetos e aulas, use o Terminal para SSH e
@@ -46,7 +44,10 @@ export default function Computador() {
           componentes={componentes}
           usuarioNome={usuario.nome}
           usuarioEmail={usuario.email}
-          possuiMidiaInstalacaoInicial={inventario.some((item) => item.itemId === MIDIA_CODEQUEST_OS_ITEM_ID)}
+          midiasInstalacaoIniciais={inventario.flatMap((item) => {
+            const sistema = getSistemaComputadorPorItem(item.itemId);
+            return sistema ? [sistema.id] : [];
+          })}
           ficha={ficha}
         />
       </div>
@@ -54,6 +55,6 @@ export default function Computador() {
       <div className="mt-8">
         <PainelHardware />
       </div>
-    </main>
+    </AppShell>
   );
 }

@@ -3,6 +3,7 @@ import { usuarioAtual } from "@/lib/auth";
 import { consultar } from "@/lib/db";
 import { sanitizarFicha } from "@/content/classes";
 import { estaOnline, marcarOnline, paraIso } from "@/lib/msn";
+import { contatoBaseVesperMsn } from "@/content/fixer";
 
 type LinhaContato = {
   id: number;
@@ -100,9 +101,22 @@ export async function GET() {
   const ultimaPorContato = new Map(ultimas.filter((m) => idsContatos.has(m.contato_id)).map((m) => [Number(m.contato_id), m]));
   const naoLidasPorContato = new Map(naoLidas.filter((l) => idsContatos.has(l.contato_id)).map((l) => [Number(l.contato_id), Number(l.total)]));
 
+  // Contato de sistema: a Fixer VESPER, sempre online, fixada no topo. Não é
+  // um usuário real — injetada sinteticamente (ver content/fixer.ts).
+  const agora = new Date().toISOString();
+  const vesperBase = contatoBaseVesperMsn();
+  const vesper = {
+    ...vesperBase,
+    ultimoOnlineEm: agora,
+    ultimaMensagem: {
+      ...vesperBase.ultimaMensagem,
+      criadaEm: agora,
+    },
+  };
+
   return NextResponse.json({
     meuId: u.id,
-    contatos: contatos.map((contato) => {
+    contatos: [vesper, ...contatos.map((contato) => {
       const ultima = ultimaPorContato.get(contato.id);
       return {
         id: contato.id,
@@ -121,7 +135,7 @@ export async function GET() {
             }
           : null,
       };
-    }),
+    })],
     pendentesRecebidos: pendentesRecebidos.map((p) => ({
       id: p.id,
       nome: p.nome,

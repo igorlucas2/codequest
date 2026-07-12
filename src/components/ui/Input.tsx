@@ -2,12 +2,11 @@ import type { InputHTMLAttributes } from "react";
 
 type Props = InputHTMLAttributes<HTMLInputElement>;
 
-// Campo de texto padrão do app (usado hoje em /entrar) — moldura neon sutil,
-// foco em ciano.
+// Campo de texto padrao do app, com o mesmo recorte angular do shell.
 export default function Input({ className = "", ...resto }: Props) {
   return (
     <input
-      className={`w-full rounded-xl border border-borda bg-fundo px-4 py-3 outline-none transition focus:border-primaria focus:bg-fundo-card ${className}`}
+      className={`deck-cut w-full border border-borda bg-fundo px-4 py-3 outline-none transition placeholder:text-texto-suave/70 focus:border-primaria focus:bg-fundo-card ${className}`}
       {...resto}
     />
   );

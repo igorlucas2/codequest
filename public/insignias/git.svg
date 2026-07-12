@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Insignia Git">
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#ea580c"/>
+  <g transform="translate(64 64) rotate(45) translate(-64 -64)">
+    <rect x="38" y="38" width="52" height="52" rx="8" fill="#f97316"/>
+    <circle cx="50" cy="50" r="6" fill="#fff7ed"/>
+    <circle cx="78" cy="78" r="6" fill="#fff7ed"/>
+    <circle cx="78" cy="50" r="6" fill="#fff7ed"/>
+    <line x1="50" y1="50" x2="78" y2="50" stroke="#fff7ed" stroke-width="3"/>
+    <line x1="78" y1="50" x2="78" y2="78" stroke="#fff7ed" stroke-width="3"/>
+  </g>
+  <rect x="24" y="96" width="80" height="16" rx="8" fill="#7c2d12" opacity="0.88"/>
+  <text x="64" y="108" text-anchor="middle" font-family="Segoe UI, Tahoma, sans-serif" font-size="10" font-weight="700" fill="#f8fafc">GIT</text>
+</svg>

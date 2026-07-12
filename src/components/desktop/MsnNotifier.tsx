@@ -1,19 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-
-type ContatoResumo = {
-  id: number;
-  nome: string;
-  online: boolean;
-  naoLidas: number;
-  ultimaMensagem: {
-    id: number;
-    texto: string;
-    minha: boolean;
-    criadaEm: string | null;
-  } | null;
-};
+import { useMsnStore } from "@/components/desktop/MsnStore";
 
 type Popup = {
   id: number;
@@ -24,6 +12,7 @@ type Popup = {
 };
 
 export default function MsnNotifier({ onAbrirContato }: { onAbrirContato: (contatoId: number) => void }) {
+  const { resumo, carregando } = useMsnStore();
   const [popups, setPopups] = useState<Popup[]>([]);
   const inicializado = useRef(false);
   const ultimoOnline = useRef<Map<number, boolean>>(new Map());
@@ -44,60 +33,49 @@ export default function MsnNotifier({ onAbrirContato }: { onAbrirContato: (conta
     [remover],
   );
 
+  // Diff sobre o resumo compartilhado (não mais um fetch próprio): compara com
+  // o estado anterior pra notificar quem acabou de entrar ou mandou mensagem.
+  // Espera a primeira carga real (carregando) pra não tratar tudo como "novo".
   useEffect(() => {
-    let ativo = true;
+    if (carregando) return;
+    const contatos = resumo.contatos;
 
-    async function tick() {
-      const res = await fetch("/api/msn", { cache: "no-store" });
-      if (!res.ok) return;
-      const dados = await res.json().catch(() => ({}));
-      const contatos: ContatoResumo[] = Array.isArray(dados.contatos) ? dados.contatos : [];
-
-      if (!inicializado.current) {
-        for (const contato of contatos) {
-          ultimoOnline.current.set(contato.id, contato.online);
-          if (contato.ultimaMensagem) ultimaMensagem.current.set(contato.id, contato.ultimaMensagem.id);
-        }
-        inicializado.current = true;
-        return;
-      }
-
-      if (!ativo) return;
+    if (!inicializado.current) {
       for (const contato of contatos) {
-        const estavaOnline = ultimoOnline.current.get(contato.id) ?? false;
-        const idAnterior = ultimaMensagem.current.get(contato.id) ?? 0;
-        const ultima = contato.ultimaMensagem;
-
-        if (!estavaOnline && contato.online) {
-          adicionarPopup({
-            tipo: "online",
-            contatoId: contato.id,
-            nome: contato.nome,
-            texto: "acabou de entrar",
-          });
-        }
-
-        if (ultima && !ultima.minha && contato.naoLidas > 0 && ultima.id > idAnterior) {
-          adicionarPopup({
-            tipo: "mensagem",
-            contatoId: contato.id,
-            nome: contato.nome,
-            texto: ultima.texto,
-          });
-        }
-
         ultimoOnline.current.set(contato.id, contato.online);
-        if (ultima) ultimaMensagem.current.set(contato.id, ultima.id);
+        if (contato.ultimaMensagem) ultimaMensagem.current.set(contato.id, contato.ultimaMensagem.id);
       }
+      inicializado.current = true;
+      return;
     }
 
-    void tick();
-    const id = window.setInterval(() => void tick(), 4200);
-    return () => {
-      ativo = false;
-      window.clearInterval(id);
-    };
-  }, [adicionarPopup]);
+    for (const contato of contatos) {
+      const estavaOnline = ultimoOnline.current.get(contato.id) ?? false;
+      const idAnterior = ultimaMensagem.current.get(contato.id) ?? 0;
+      const ultima = contato.ultimaMensagem;
+
+      if (!estavaOnline && contato.online) {
+        adicionarPopup({
+          tipo: "online",
+          contatoId: contato.id,
+          nome: contato.nome,
+          texto: "acabou de entrar",
+        });
+      }
+
+      if (ultima && !ultima.minha && contato.naoLidas > 0 && ultima.id > idAnterior) {
+        adicionarPopup({
+          tipo: "mensagem",
+          contatoId: contato.id,
+          nome: contato.nome,
+          texto: ultima.texto,
+        });
+      }
+
+      ultimoOnline.current.set(contato.id, contato.online);
+      if (ultima) ultimaMensagem.current.set(contato.id, ultima.id);
+    }
+  }, [resumo, carregando, adicionarPopup]);
 
   if (popups.length === 0) return null;
 

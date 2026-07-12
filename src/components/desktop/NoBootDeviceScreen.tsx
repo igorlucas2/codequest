@@ -16,8 +16,8 @@ export default function NoBootDeviceScreen({
       <div>
         <p className="no-boot-title">No bootable device</p>
         <p className="no-boot-text">
-          O disco nao possui um sistema operacional inicializavel. Compre a midia no Mercado,
-          abra o Setup, conecte o USB e instale o CodeQuest OS.
+          O disco nao possui um sistema operacional inicializavel. Compre uma midia no Mercado,
+          abra o Setup, conecte a unidade removivel e instale o sistema escolhido.
         </p>
         <div className="no-boot-actions">
           <button type="button" onClick={onSetup}>

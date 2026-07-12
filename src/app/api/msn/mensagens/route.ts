@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { usuarioAtual } from "@/lib/auth";
 import { consultar, executar } from "@/lib/db";
 import { contatoAceito, marcarOnline } from "@/lib/msn";
+import { VESPER_MSN_ID, transmissoesMsnVesper } from "@/content/fixer";
+import { FASES } from "@/content/trilha1";
 
 type LinhaMensagem = {
   id: number;
@@ -22,6 +24,30 @@ export async function GET(req: Request) {
 
   const contatoId = contatoDaUrl(req.url);
   if (!contatoId) return NextResponse.json({ erro: "Contato invalido." }, { status: 400 });
+
+  // VESPER (contato de sistema): conversa só-leitura gerada a partir do
+  // progresso do runner. Não passa pelo msn_contatos nem pela tabela de
+  // mensagens — é sintetizada aqui.
+  if (contatoId === VESPER_MSN_ID) {
+    const [linha] = await consultar<{ total: number }>(
+      "SELECT COUNT(*) AS total FROM progresso WHERE usuario_id = ?",
+      [u.id],
+    );
+    const concluidas = Number(linha?.total ?? 0);
+    const textos = transmissoesMsnVesper(concluidas, FASES.length);
+    const base = Math.floor(Date.now() / 60000) * 60000;
+    return NextResponse.json({
+      mensagens: textos.map((texto, i) => ({
+        id: -(i + 1),
+        remetenteId: VESPER_MSN_ID,
+        destinatarioId: u.id,
+        texto,
+        minha: false,
+        criadaEm: new Date(base - (textos.length - 1 - i) * 60000).toISOString(),
+        lidaEm: new Date(base).toISOString(),
+      })),
+    });
+  }
 
   const contatoOk = await contatoAceito(u.id, contatoId);
   if (!contatoOk) return NextResponse.json({ erro: "Contato nao aceito." }, { status: 403 });
@@ -79,6 +105,7 @@ export async function POST(req: Request) {
 
 function contatoDaUrl(url: string) {
   const id = Number(new URL(url).searchParams.get("com"));
+  if (id === VESPER_MSN_ID) return id;
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 

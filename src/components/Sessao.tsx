@@ -9,6 +9,7 @@ import {
 } from "react";
 import { FASES } from "@/content/trilha1";
 import { FICHA_PADRAO, type Ficha } from "@/content/classes";
+import type { RanksMap } from "@/content/augments";
 import { NIVEIS_INICIAIS, type NiveisComponentes } from "@/content/componentes";
 import { calcularStats, type Stats } from "@/lib/stats";
 import {
@@ -16,6 +17,7 @@ import {
   limparEstadoDesktopPersistido,
 } from "@/components/desktop/persistenciaDesktop";
 import type { EnvioDesafio } from "@/lib/tiposTrilha";
+import { ESTAGIOS_RUNNER, type EstagioRunner } from "@/content/estagiosRunner";
 
 export type Usuario = {
   id: number;
@@ -39,6 +41,12 @@ type Contexto = {
   componentes: NiveisComponentes;
   stats: Stats;
   nivel: number;
+  vitorias: number;
+  estagioRunner: EstagioRunner;
+  augments: RanksMap;
+  praxis: number;
+  respecs: number;
+  respecMarcaContratos: number;
   totalConcluidas: number;
   totalFases: number;
   tourVisto: boolean;
@@ -52,6 +60,8 @@ type Contexto = {
   melhorarComponente: (componenteId: string) => Promise<{ ok: boolean; erro?: string }>;
   equipar: (itemId: string, equipar: boolean) => Promise<void>;
   salvarFicha: (ficha: Ficha) => Promise<void>;
+  instalarAugment: (augId: string) => Promise<{ ok: boolean; erro?: string }>;
+  resetarBuild: () => Promise<{ ok: boolean; erro?: string }>;
   marcarTourVisto: () => Promise<void>;
   sair: () => Promise<void>;
 };
@@ -69,6 +79,12 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   const [equipados, setEquipados] = useState<string[]>([]);
   const [componentes, setComponentes] = useState<NiveisComponentes>(NIVEIS_INICIAIS);
   const [stats, setStats] = useState<Stats>(calcularStats(0, []));
+  const [vitorias, setVitorias] = useState(0);
+  const [estagioRunner, setEstagioRunner] = useState<EstagioRunner>(ESTAGIOS_RUNNER[0]);
+  const [augments, setAugments] = useState<RanksMap>({});
+  const [praxis, setPraxis] = useState(0);
+  const [respecs, setRespecs] = useState(0);
+  const [respecMarcaContratos, setRespecMarcaContratos] = useState(0);
   const [tourVisto, setTourVisto] = useState(true);
 
   const recarregar = useCallback(async () => {
@@ -83,6 +99,12 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
       setEquipados(d.equipados ?? []);
       setComponentes(d.componentes ?? NIVEIS_INICIAIS);
       setStats(d.stats ?? calcularStats(0, []));
+      setVitorias(d.vitorias ?? 0);
+      setEstagioRunner(d.estagioRunner ?? ESTAGIOS_RUNNER[0]);
+      setAugments(d.augments ?? {});
+      setPraxis(d.praxis ?? 0);
+      setRespecs(d.respecs ?? 0);
+      setRespecMarcaContratos(d.respecMarcaContratos ?? 0);
       setTourVisto(d.tourVisto ?? true);
     } catch {
       setUsuario(null);
@@ -166,6 +188,27 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     [recarregar],
   );
 
+  const instalarAugment = useCallback(
+    async (augId: string) => {
+      const res = await fetch("/api/personagem/augment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ augId }),
+      });
+      const d = await res.json().catch(() => ({}));
+      await recarregar();
+      return { ok: res.ok, erro: d.erro as string | undefined };
+    },
+    [recarregar],
+  );
+
+  const resetarBuild = useCallback(async () => {
+    const res = await fetch("/api/personagem/augment/reset", { method: "POST" });
+    const d = await res.json().catch(() => ({}));
+    await recarregar();
+    return { ok: res.ok, erro: d.erro as string | undefined };
+  }, [recarregar]);
+
   const marcarTourVisto = useCallback(async () => {
     setTourVisto(true); // fecha o modal na hora, sem esperar o round-trip
     await fetch("/api/tour/visto", { method: "POST" });
@@ -206,6 +249,12 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     componentes,
     stats,
     nivel: stats.nivel,
+    vitorias,
+    estagioRunner,
+    augments,
+    praxis,
+    respecs,
+    respecMarcaContratos,
     totalConcluidas: progresso.fasesConcluidas.length,
     totalFases: FASES.length,
     tourVisto,
@@ -219,6 +268,8 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     melhorarComponente,
     equipar,
     salvarFicha,
+    instalarAugment,
+    resetarBuild,
     marcarTourVisto,
     sair,
   };

@@ -1,10 +1,11 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import CyberAvatar from "@/components/CyberAvatar";
 import Spinner from "@/components/Spinner";
 import { useSessao } from "@/components/Sessao";
 import { useToast } from "@/components/Toast";
+import { useMsnStore } from "@/components/desktop/MsnStore";
 import type { Ficha } from "@/content/classes";
 
 type Contato = {
@@ -22,12 +23,6 @@ type Contato = {
   } | null;
 };
 
-type Convite = {
-  id: number;
-  nome: string;
-  ficha: Ficha;
-};
-
 type ResultadoBusca = {
   id: number;
   nome: string;
@@ -36,65 +31,25 @@ type ResultadoBusca = {
   solicitadoPorVoce: boolean;
 };
 
-type ResumoMsn = {
-  contatos: Contato[];
-  pendentesRecebidos: Convite[];
-  pendentesEnviados: Convite[];
-};
-
 export default function Msn({ onAbrirConversa }: { onAbrirConversa: (contatoId: number) => void }) {
   const toast = useToast();
   const { usuario } = useSessao();
+  const { resumo, carregando, recarregar } = useMsnStore();
   const [conectado, setConectado] = useState(false);
-  const [resumo, setResumo] = useState<ResumoMsn>({
-    contatos: [],
-    pendentesRecebidos: [],
-    pendentesEnviados: [],
-  });
-  const [selecionado, setSelecionado] = useState<number | null>(null);
+  const [selecionadoManual, setSelecionadoManual] = useState<number | null>(null);
   const [busca, setBusca] = useState("");
   const [resultados, setResultados] = useState<ResultadoBusca[]>([]);
-  const [carregando, setCarregando] = useState(true);
   const [buscando, setBuscando] = useState(false);
 
-  const carregarResumo = useCallback(async () => {
-    const res = await fetch("/api/msn", { cache: "no-store" });
-    const dados = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(dados.erro ?? "Falha ao carregar MSN.");
-
-    const proximo: ResumoMsn = {
-      contatos: Array.isArray(dados.contatos) ? dados.contatos : [],
-      pendentesRecebidos: Array.isArray(dados.pendentesRecebidos) ? dados.pendentesRecebidos : [],
-      pendentesEnviados: Array.isArray(dados.pendentesEnviados) ? dados.pendentesEnviados : [],
-    };
-
-    setResumo(proximo);
-    setSelecionado((atual) => {
-      if (atual && proximo.contatos.some((c) => c.id === atual)) return atual;
-      return proximo.contatos.find((c) => c.naoLidas > 0)?.id ?? proximo.contatos[0]?.id ?? null;
-    });
-  }, []);
-
-  useEffect(() => {
-    let ativo = true;
-
-    async function tick() {
-      try {
-        await carregarResumo();
-      } catch (e) {
-        if (ativo) toast.mostrar(e instanceof Error ? e.message : "Falha ao carregar MSN.", "erro");
-      } finally {
-        if (ativo) setCarregando(false);
-      }
+  // Seleção derivada no render (sem efeito): respeita a escolha manual se o
+  // contato ainda existe; senão cai no primeiro com não-lida, ou no primeiro
+  // da lista.
+  const selecionado = useMemo(() => {
+    if (selecionadoManual && resumo.contatos.some((c) => c.id === selecionadoManual)) {
+      return selecionadoManual;
     }
-
-    void tick();
-    const id = window.setInterval(() => void tick(), 4000);
-    return () => {
-      ativo = false;
-      window.clearInterval(id);
-    };
-  }, [carregarResumo, toast]);
+    return resumo.contatos.find((c) => c.naoLidas > 0)?.id ?? resumo.contatos[0]?.id ?? null;
+  }, [selecionadoManual, resumo.contatos]);
 
   const online = useMemo(() => resumo.contatos.filter((c) => c.online), [resumo.contatos]);
   const offline = useMemo(() => resumo.contatos.filter((c) => !c.online), [resumo.contatos]);
@@ -130,7 +85,7 @@ export default function Msn({ onAbrirConversa }: { onAbrirConversa: (contatoId: 
       const dados = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(dados.erro ?? "Nao foi possivel adicionar.");
       toast.mostrar(dados.status === "aceito" ? "Contato aceito." : "Convite enviado.", "sucesso");
-      await carregarResumo();
+      await recarregar();
       setResultados((atuais) =>
         atuais.map((r) =>
           r.id === usuarioId
@@ -153,7 +108,7 @@ export default function Msn({ onAbrirConversa }: { onAbrirConversa: (contatoId: 
       const dados = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(dados.erro ?? "Nao foi possivel responder.");
       toast.mostrar(acao === "aceitar" ? "Contato adicionado." : "Convite recusado.", "sucesso");
-      await carregarResumo();
+      await recarregar();
     } catch (e) {
       toast.mostrar(e instanceof Error ? e.message : "Nao foi possivel responder.", "erro");
     }
@@ -268,7 +223,7 @@ export default function Msn({ onAbrirConversa }: { onAbrirConversa: (contatoId: 
           vazia="Nenhum amigo online."
           contatos={online}
           selecionado={selecionado}
-          onSelecionar={setSelecionado}
+          onSelecionar={setSelecionadoManual}
           onAbrir={onAbrirConversa}
         />
         <ListaContatos
@@ -276,7 +231,7 @@ export default function Msn({ onAbrirConversa }: { onAbrirConversa: (contatoId: 
           vazia="Sem contatos offline."
           contatos={offline}
           selecionado={selecionado}
-          onSelecionar={setSelecionado}
+          onSelecionar={setSelecionadoManual}
           onAbrir={onAbrirConversa}
         />
         </div>

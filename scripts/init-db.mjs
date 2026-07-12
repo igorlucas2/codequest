@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   avatar JSON NULL,
   componentes JSON NULL,
   tour_visto TINYINT(1) NOT NULL DEFAULT 0,
+  respecs INT NOT NULL DEFAULT 0,
+  respec_marca_contratos INT NOT NULL DEFAULT 0,
   ultimo_online DATETIME NULL,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -122,6 +124,15 @@ CREATE TABLE IF NOT EXISTS apps_instalados (
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS augments_runner (
+  usuario_id INT NOT NULL,
+  aug_id VARCHAR(30) NOT NULL,
+  rank_atual INT NOT NULL DEFAULT 0,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (usuario_id, aug_id),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS notebook_workspaces (
   usuario_id INT PRIMARY KEY,
   dados JSON NOT NULL,
@@ -137,6 +148,7 @@ CREATE TABLE IF NOT EXISTS computadores (
   nome_maquina VARCHAR(40) NOT NULL DEFAULT 'deck-runner',
   instalado_em DATETIME NULL,
   midia_conectada TINYINT(1) NOT NULL DEFAULT 0,
+  midia_sistema_id VARCHAR(40) NULL,
   boot_preferido ENUM('disco','usb','rede') NOT NULL DEFAULT 'disco',
   atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
@@ -206,6 +218,8 @@ const MIGRACOES = [
   "ALTER TABLE servidores ADD COLUMN rede_configurada TINYINT(1) NOT NULL DEFAULT 0",
   "ALTER TABLE servidores ADD COLUMN sistema_operacional VARCHAR(30) NULL",
   "ALTER TABLE usuarios ADD COLUMN tour_visto TINYINT(1) NOT NULL DEFAULT 0",
+  "ALTER TABLE usuarios ADD COLUMN respecs INT NOT NULL DEFAULT 0",
+  "ALTER TABLE usuarios ADD COLUMN respec_marca_contratos INT NOT NULL DEFAULT 0",
   "ALTER TABLE servidores ADD COLUMN ssh_habilitado TINYINT(1) NOT NULL DEFAULT 0",
   "ALTER TABLE servidores ADD COLUMN servidores_extras INT NOT NULL DEFAULT 0",
   "ALTER TABLE servidores ADD COLUMN switch_tier VARCHAR(30) NULL",
@@ -220,6 +234,7 @@ const MIGRACOES = [
   "ALTER TABLE servidores ADD COLUMN midia_boot VARCHAR(30) NULL",
   "ALTER TABLE servidores ADD COLUMN instalacao_so_id VARCHAR(30) NULL",
   "ALTER TABLE servidores ADD COLUMN instalacao_finaliza_em DATETIME NULL",
+  "ALTER TABLE computadores ADD COLUMN midia_sistema_id VARCHAR(40) NULL",
   "ALTER TABLE batalhas ADD KEY idx_vencedor (vencedor_id)",
   // Quem já tinha rede configurada antes da internet virar pré-requisito não
   // pode perder alcance de rede silenciosamente — considera "já contratada".

@@ -134,6 +134,27 @@ export function modificadoresDe(classeId: string, racaId: string): Atributos {
   };
 }
 
+// Modificadores só da origem (linguagem nativa). Os mods de combate do runner
+// agora vêm dos augments (ver content/augments.ts); a classe virou um título
+// derivado da build, então não entra mais no cálculo de stats.
+export function modificadoresOrigem(racaId: string): Atributos {
+  const r = getRaca(racaId)?.mod ?? {};
+  return { ataque: r.ataque ?? 0, defesa: r.defesa ?? 0, vida: r.vida ?? 0 };
+}
+
+// --- Economia de especialização (respec) -----------------------------------
+// A primeira definição de especialização é grátis (escolha inicial). Cada troca
+// seguinte custa créditos, dobrando a cada vez (150 → 300 → 600 ...) e exige
+// contratos concluídos desde a última troca (cooldown). Assim a especialização
+// vira um compromisso, não um slider de min-max antes de cada duelo.
+export const RESPEC_COOLDOWN_CONTRATOS = 2;
+
+// `respecsFeitos` = quantas vezes a especialização já foi definida (0 = nunca).
+export function custoRespec(respecsFeitos: number): number {
+  if (respecsFeitos <= 0) return 0; // escolha inicial: grátis
+  return 150 * 2 ** (respecsFeitos - 1);
+}
+
 export function sanitizarFicha(bruto: unknown): Ficha {
   const c = (bruto ?? {}) as Record<string, unknown>;
   const naLista = (lista: readonly string[], v: unknown, padrao: string) =>

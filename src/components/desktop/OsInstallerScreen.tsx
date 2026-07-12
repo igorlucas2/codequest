@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { GeracaoPcId } from "@/content/geracoesPc";
+import type { SistemaComputador } from "@/content/computador";
 import type { EstadoSistemaOperacional } from "@/components/desktop/persistenciaDesktop";
 
 const ETAPAS = [
   "Verificando midia de instalacao",
   "Preparando disco de projetos",
   "Criando particao do sistema",
-  "Copiando arquivos do CodeQuest OS",
+  "Copiando arquivos do sistema",
   "Instalando CodeQuest IDE",
   "Criando usuario local",
   "Finalizando instalacao",
@@ -28,6 +29,7 @@ function normalizarCampo(v: string, fallback: string) {
 export default function OsInstallerScreen({
   geracao,
   sistema,
+  sistemaInstalacao,
   usuarioNome,
   usuarioEmail,
   onConcluir,
@@ -35,6 +37,7 @@ export default function OsInstallerScreen({
 }: {
   geracao: GeracaoPcId;
   sistema: EstadoSistemaOperacional;
+  sistemaInstalacao: SistemaComputador;
   usuarioNome: string;
   usuarioEmail: string;
   onConcluir: (estado: EstadoSistemaOperacional) => void;
@@ -74,11 +77,12 @@ export default function OsInstallerScreen({
     onConcluir({
       ...sistema,
       instalado: true,
-      versao: "CodeQuest OS",
+      versao: sistemaInstalacao.nome,
       usuarioLocal: normalizarCampo(usuarioLocal, usuarioPadrao),
       nomeMaquina: normalizarCampo(nomeMaquina, maquinaPadrao),
       instaladoEm: new Date().toISOString(),
       midiaConectada: false,
+      midiaSistemaId: null,
       bootPreferido: "disco",
     });
   }
@@ -87,12 +91,12 @@ export default function OsInstallerScreen({
     <div className={`os-installer os-installer--${geracao}`}>
       <div className="os-installer-panel">
         <header>
-          <span className="boot-os-icon boot-os-icon--neon" aria-hidden="true">
-            CQ
+          <span className={`boot-os-icon boot-os-icon--${sistemaInstalacao.tema}`} aria-hidden="true">
+            {sistemaInstalacao.rotuloIcone}
           </span>
           <div>
-            <p>Instalador CodeQuest OS</p>
-            <small>Midia USB inicializavel detectada</small>
+            <p>Instalador {sistemaInstalacao.nome}</p>
+            <small>{sistemaInstalacao.nomeMidia} detectada</small>
           </div>
         </header>
 

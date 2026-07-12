@@ -10,7 +10,19 @@ import OsInstallerScreen from "@/components/desktop/OsInstallerScreen";
 import OsLoginScreen from "@/components/desktop/OsLoginScreen";
 import PowerOffScreen from "@/components/desktop/PowerOffScreen";
 import { geracaoPorNotebook } from "@/content/geracoesPc";
-import { COMPONENTES, nivelDe, type NiveisComponentes } from "@/content/componentes";
+import {
+  SISTEMA_COMPUTADOR_PADRAO_ID,
+  getSistemaComputador,
+  getSistemaComputadorPorVersao,
+  type SistemaComputadorId,
+} from "@/content/computador";
+import {
+  COMPONENTES,
+  nivelDe,
+  capacidadeDisco,
+  capacidadeRam as capacidadeRamDe,
+  type NiveisComponentes,
+} from "@/content/componentes";
 import {
   lerEstadoSistemaOperacional,
   lerLigadoSalvo,
@@ -27,6 +39,7 @@ import type { IdeProgramaProps } from "@/components/desktop/programas/Ide";
 type RespostaSistemaComputador = {
   estado?: EstadoSistemaOperacional;
   possuiMidiaInstalacao?: boolean;
+  midiasInstalacao?: SistemaComputadorId[];
 };
 
 export default function ComputadorMonitor({
@@ -42,7 +55,7 @@ export default function ComputadorMonitor({
   componentes,
   usuarioNome,
   usuarioEmail,
-  possuiMidiaInstalacaoInicial = false,
+  midiasInstalacaoIniciais = [],
   ficha,
 }: {
   equipados: string[];
@@ -57,7 +70,7 @@ export default function ComputadorMonitor({
   componentes: NiveisComponentes;
   usuarioNome: string;
   usuarioEmail: string;
-  possuiMidiaInstalacaoInicial?: boolean;
+  midiasInstalacaoIniciais?: SistemaComputadorId[];
   ficha: Ficha;
 }) {
   const geracao = geracaoPorNotebook(equipados);
@@ -71,14 +84,18 @@ export default function ComputadorMonitor({
   const chaveSistema = chavePastas ?? `usuario-${usuarioEmail}`;
   const [sistemaOperacional, setSistemaOperacional] = useState<EstadoSistemaOperacional>(() => {
     const salvo = lerEstadoSistemaOperacional(chaveSistema, usuarioNome, usuarioEmail);
-    if (possuiMidiaInstalacaoInicial) return salvo;
+    if (midiasInstalacaoIniciais.length > 0) return salvo;
     return {
       ...salvo,
       midiaConectada: false,
+      midiaSistemaId: null,
       bootPreferido: salvo.bootPreferido === "usb" ? "disco" : salvo.bootPreferido,
     };
   });
-  const [possuiMidiaInstalacao, setPossuiMidiaInstalacao] = useState(possuiMidiaInstalacaoInicial);
+  const [midiasInstalacao, setMidiasInstalacao] = useState<SistemaComputadorId[]>(
+    midiasInstalacaoIniciais,
+  );
+  const possuiMidiaInstalacao = midiasInstalacao.length > 0;
   const estadoEnergia: EstadoEnergiaComputador = ligado
     ? "ligado"
     : setupAberto
@@ -113,7 +130,7 @@ export default function ComputadorMonitor({
       .then((dados: RespostaSistemaComputador | null) => {
         if (cancelado || !dados?.estado) return;
         setSistemaOperacional(dados.estado);
-        setPossuiMidiaInstalacao(dados.possuiMidiaInstalacao === true);
+        setMidiasInstalacao(dados.midiasInstalacao ?? []);
         salvarEstadoSistemaOperacional(chaveSistema, dados.estado);
       })
       .catch(() => {
@@ -138,7 +155,7 @@ export default function ComputadorMonitor({
         const dados = (await res.json()) as RespostaSistemaComputador;
         if (dados.estado) {
           setSistemaOperacional(dados.estado);
-          setPossuiMidiaInstalacao(dados.possuiMidiaInstalacao === true);
+          setMidiasInstalacao(dados.midiasInstalacao ?? []);
           salvarEstadoSistemaOperacional(chaveSistema, dados.estado);
         }
       } catch {
@@ -148,14 +165,30 @@ export default function ComputadorMonitor({
     [chaveSistema],
   );
 
-  const postLinhas = useMemo(
-    () =>
-      COMPONENTES.map((comp) => {
-        const nivel = nivelDe(comp, componentes[comp.id]);
-        return `${comp.nome}: ${nivel.nome} OK`;
-      }),
-    [componentes],
-  );
+  const postLinhas = useMemo(() => {
+    const linhas = COMPONENTES.map((comp) => {
+      const nivel = nivelDe(comp, componentes[comp.id]);
+      return `${comp.nome}: ${nivel.nome} OK`;
+    });
+    // Resumo de capacidade detectada — o momento diegético certo pra hardware
+    // aparecer (POST de um PC real reporta RAM e disco encontrados).
+    linhas.push(`Memoria: ${capacidadeRamDe(componentes)} apps simultaneos`);
+    linhas.push(`Disco: ${capacidadeDisco(componentes)} itens de armazenamento`);
+    return linhas;
+  }, [componentes]);
+  const sistemaEmBoot = useMemo(() => {
+    if (sistemaOperacional.bootPreferido === "usb") {
+      return getSistemaComputador(sistemaOperacional.midiaSistemaId);
+    }
+    return (
+      getSistemaComputadorPorVersao(sistemaOperacional.versao) ??
+      getSistemaComputador(SISTEMA_COMPUTADOR_PADRAO_ID)
+    );
+  }, [
+    sistemaOperacional.bootPreferido,
+    sistemaOperacional.midiaSistemaId,
+    sistemaOperacional.versao,
+  ]);
 
   const ligar = useCallback(() => {
     if (ligado || inicializando || setupAberto || loginVisivel || instaladorVisivel || semBootVisivel) {
@@ -182,7 +215,7 @@ export default function ComputadorMonitor({
   const concluirBoot = useCallback(() => {
     setInicializando(false);
     if (sistemaOperacional.bootPreferido === "usb") {
-      if (possuiMidiaInstalacao && sistemaOperacional.midiaConectada) {
+      if (sistemaOperacional.midiaConectada && sistemaOperacional.midiaSistemaId) {
         setInstaladorVisivel(true);
         return;
       }
@@ -198,7 +231,7 @@ export default function ComputadorMonitor({
       return;
     }
     setSemBootVisivel(true);
-  }, [possuiMidiaInstalacao, sistemaOperacional]);
+  }, [sistemaOperacional]);
 
   const abrirSetup = useCallback(() => {
     setInicializando(false);
@@ -306,6 +339,7 @@ export default function ComputadorMonitor({
           ide={ide}
           sistemaOperacional={sistemaOperacional}
           possuiMidiaInstalacao={possuiMidiaInstalacao}
+          geracaoForcada={sistemaEmBoot?.tema}
         />
       ) : setupAberto ? (
         <BiosSetup
@@ -314,15 +348,21 @@ export default function ComputadorMonitor({
           componentes={componentes}
           velocidade={velocidade}
           sistemaOperacional={sistemaOperacional}
-          possuiMidiaInstalacao={possuiMidiaInstalacao}
+          midiasInstalacao={midiasInstalacao}
           onAlterarSistema={alterarSistemaOperacional}
           onContinuar={continuarBoot}
           onDesligar={desligar}
         />
       ) : instaladorVisivel ? (
         <OsInstallerScreen
-          geracao={geracao}
+          geracao={
+            getSistemaComputador(sistemaOperacional.midiaSistemaId)?.tema ?? geracao
+          }
           sistema={sistemaOperacional}
+          sistemaInstalacao={
+            getSistemaComputador(sistemaOperacional.midiaSistemaId) ??
+            getSistemaComputador(SISTEMA_COMPUTADOR_PADRAO_ID)!
+          }
           usuarioNome={usuarioNome}
           usuarioEmail={usuarioEmail}
           onConcluir={concluirInstalacao}
@@ -336,6 +376,9 @@ export default function ComputadorMonitor({
           usuarioNome={usuarioNome}
           usuarioEmail={usuarioEmail}
           ficha={ficha}
+          sistemaNome={sistemaEmBoot?.nome}
+          sistemaIcone={sistemaEmBoot?.rotuloIcone}
+          sistemaTema={sistemaEmBoot?.tema}
           onEntrar={entrarNoDesktop}
         />
       ) : inicializando ? (
@@ -343,6 +386,9 @@ export default function ComputadorMonitor({
           key={bootKey}
           geracao={geracao}
           velocidade={velocidade}
+          sistemaNome={sistemaEmBoot?.nome}
+          sistemaIcone={sistemaEmBoot?.rotuloIcone}
+          sistemaTema={sistemaEmBoot?.tema}
           postLinhas={postLinhas}
           onAbrirSetup={abrirSetup}
           aoConcluir={concluirBoot}

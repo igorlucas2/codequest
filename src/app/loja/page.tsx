@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import NavRpg from "@/components/NavRpg";
+import AppShell from "@/components/AppShell";
 import Button from "@/components/ui/Button";
 import { useSessao } from "@/components/Sessao";
 import { useToast } from "@/components/Toast";
@@ -24,6 +24,7 @@ import type { App } from "@/content/apps";
 import type { ServidorTier, ServidorTierId } from "@/content/servidores";
 import type { SistemaOperacional, SistemaOperacionalId } from "@/content/sistemasOperacionais";
 import type { SwitchTier, SwitchTierId } from "@/content/switches";
+import { getSistemaComputadorPorItem } from "@/content/computador";
 
 const ICONES_ATRIBUTO: Record<keyof Atributos, string> = {
   ataque: "💉",
@@ -103,9 +104,9 @@ export default function Loja() {
 
   if (!carregado || !usuario) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-16 text-center text-texto-suave">
-        Carregando...
-      </main>
+      <AppShell largura="max-w-7xl">
+        <p className="py-16 text-center text-texto-suave">Carregando mercado...</p>
+      </AppShell>
     );
   }
 
@@ -148,17 +149,15 @@ export default function Loja() {
   const servidorOnline = Boolean(infra?.estadoOperacional.online && !infra?.midiasSistema.midiaBoot);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <NavRpg />
-
-      <header className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <AppShell largura="max-w-7xl">
+      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="titulo text-3xl font-black text-ouro">Mercado Negro</h1>
           <p className="text-texto-suave">
             Compras ficam aqui. O Datacenter fica para operar, ligar, configurar e manter.
           </p>
         </div>
-        <span className="cartao cartao-ouro rounded-xl px-4 py-2 text-ouro">◈ {moedas} cr</span>
+        <span className="cartao cartao-ouro px-4 py-2 font-mono text-sm text-ouro">◈ {moedas} cr</span>
       </header>
 
       <nav className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -166,7 +165,7 @@ export default function Loja() {
           <button
             key={item.id}
             onClick={() => setAba(item.id)}
-            className={`rounded-2xl border p-4 text-left transition ${
+            className={`deck-cut border p-4 text-left transition ${
               aba === item.id
                 ? "border-primaria bg-primaria/15"
                 : "border-borda bg-fundo-card hover:border-primaria/50"
@@ -396,7 +395,7 @@ export default function Loja() {
         <p className="mt-1 text-sm text-texto-suave">
           Não estão à venda. São concedidos ao vencer invasões na Rede.
         </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
           {MARCOS_VITORIA_PVP.map((marco) => {
             const item = getItem(marco.itemId);
             if (!item) return null;
@@ -429,7 +428,7 @@ export default function Loja() {
           })}
         </div>
       </div>
-    </main>
+    </AppShell>
   );
 }
 
@@ -459,7 +458,7 @@ function GrupoItens({
           <h2 className="titulo text-xl font-bold text-destaque">
             {slot.icone} {slot.nome}
           </h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
             {ITENS.filter((item) => item.tipo === slot.tipo && !item.exclusivo).map((item, i) => {
               const possui = temItem(item.id);
               const midia = item.tipo === "midia";
@@ -477,7 +476,7 @@ function GrupoItens({
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: reduzido ? 0 : 0.22, delay: reduzido ? 0 : i * 0.04, ease: "easeOut" }}
-                  className="flex items-center gap-3 rounded-xl border border-borda bg-fundo-card p-3"
+                  className="flex min-w-0 items-center gap-3 rounded-xl border border-borda bg-fundo-card p-3"
                 >
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-fundo text-2xl">
                     {item.icone}
@@ -532,7 +531,7 @@ function SecaoCatalogo({ titulo, children }: { titulo: string; children: ReactNo
   return (
     <section>
       <h2 className="titulo text-xl font-bold text-destaque">{titulo}</h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">{children}</div>
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">{children}</div>
     </section>
   );
 }
@@ -549,7 +548,7 @@ function CardMercado({
   acao: ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-borda bg-fundo-card p-3">
+    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-borda bg-fundo-card p-3">
       <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-fundo text-2xl">{icone}</span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{titulo}</p>
@@ -561,7 +560,12 @@ function CardMercado({
 }
 
 function descreverAtributos(item: Item) {
-  if (item.tipo === "midia") return "Midia de instalacao para boot e reinstalacao do computador.";
+  if (item.tipo === "midia") {
+    const sistema = getSistemaComputadorPorItem(item.id);
+    return sistema
+      ? `${sistema.nome}: ${sistema.descricao}`
+      : "Midia de instalacao para o computador.";
+  }
   const p: string[] = [];
   if (item.atributos.ataque) p.push(`+${item.atributos.ataque} 💉`);
   if (item.atributos.defesa) p.push(`+${item.atributos.defesa} 🧱`);

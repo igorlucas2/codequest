@@ -37,6 +37,6 @@ export function gerarRodadas(nivelOponente: number): RodadaCombate[] {
 
   return ordem.map((resposta, i) => ({
     resposta,
-    limiteMs: clamp(8000 - i * 700 - nivelOponente * 250, 3000, 8000),
+    limiteMs: clamp(10500 - i * 750 - nivelOponente * 220, 4500, 10500),
   }));
 }

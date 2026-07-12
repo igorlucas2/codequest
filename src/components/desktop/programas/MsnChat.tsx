@@ -4,14 +4,8 @@ import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } fro
 import CyberAvatar from "@/components/CyberAvatar";
 import Spinner from "@/components/Spinner";
 import { useToast } from "@/components/Toast";
-import type { Ficha } from "@/content/classes";
-
-type Contato = {
-  id: number;
-  nome: string;
-  ficha: Ficha;
-  online: boolean;
-};
+import { useMsnStore } from "@/components/desktop/MsnStore";
+import { VESPER_MSN_ID } from "@/content/fixer";
 
 type Mensagem = {
   id: number;
@@ -24,7 +18,8 @@ const LIMITE_TEXTO = 600;
 
 export default function MsnChat({ contatoId }: { contatoId: number | null }) {
   const toast = useToast();
-  const [contatos, setContatos] = useState<Contato[]>([]);
+  const { resumo } = useMsnStore();
+  const contatos = resumo.contatos;
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [texto, setTexto] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -35,13 +30,7 @@ export default function MsnChat({ contatoId }: { contatoId: number | null }) {
     () => contatos.find((item) => item.id === contatoId) ?? null,
     [contatos, contatoId],
   );
-
-  const carregarContatos = useCallback(async () => {
-    const res = await fetch("/api/msn", { cache: "no-store" });
-    const dados = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(dados.erro ?? "Falha ao carregar contatos.");
-    return Array.isArray(dados.contatos) ? (dados.contatos as Contato[]) : [];
-  }, []);
+  const souVesper = contatoId === VESPER_MSN_ID;
 
   const carregarMensagens = useCallback(async (id: number) => {
     const res = await fetch(`/api/msn/mensagens?com=${id}`, { cache: "no-store" });
@@ -59,12 +48,8 @@ export default function MsnChat({ contatoId }: { contatoId: number | null }) {
     async function tick() {
       try {
         if (primeiraCarga) setCarregando(true);
-        const [listaContatos, listaMensagens] = await Promise.all([
-          carregarContatos(),
-          carregarMensagens(idContato),
-        ]);
+        const listaMensagens = await carregarMensagens(idContato);
         if (!ativo) return;
-        setContatos(listaContatos);
         setMensagens(listaMensagens);
       } catch (e) {
         if (ativo) toast.mostrar(e instanceof Error ? e.message : "Falha ao abrir conversa.", "erro");
@@ -80,7 +65,7 @@ export default function MsnChat({ contatoId }: { contatoId: number | null }) {
       ativo = false;
       window.clearInterval(id);
     };
-  }, [contatoId, carregarContatos, carregarMensagens, toast]);
+  }, [contatoId, carregarMensagens, toast]);
 
   useEffect(() => {
     fimRef.current?.scrollIntoView({ block: "end" });
@@ -88,7 +73,7 @@ export default function MsnChat({ contatoId }: { contatoId: number | null }) {
 
   async function enviarMensagem(event: FormEvent) {
     event.preventDefault();
-    if (!contatoId || enviando) return;
+    if (!contatoId || enviando || souVesper) return;
     const conteudo = texto.trim();
     if (!conteudo) return;
 
@@ -197,13 +182,18 @@ export default function MsnChat({ contatoId }: { contatoId: number | null }) {
 
           <form className="msn-compose" onSubmit={enviarMensagem}>
             <input
-              value={texto}
+              value={souVesper ? "" : texto}
               maxLength={LIMITE_TEXTO}
+              disabled={souVesper}
               onChange={(e) => setTexto(e.target.value.slice(0, LIMITE_TEXTO))}
-              placeholder="Digite sua mensagem..."
+              placeholder={
+                souVesper ? "VESPER só transmite — canal de leitura." : "Digite sua mensagem..."
+              }
             />
             <div className="msn-send-stack">
-              <button disabled={!texto.trim() || enviando}>{enviando ? "..." : "Send"}</button>
+              <button disabled={souVesper || !texto.trim() || enviando}>
+                {enviando ? "..." : "Send"}
+              </button>
               <button type="button" disabled>Search</button>
             </div>
           </form>

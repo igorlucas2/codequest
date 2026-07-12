@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import NavRpg from "@/components/NavRpg";
+import AppShell from "@/components/AppShell";
 import Button from "@/components/ui/Button";
 import { SkeletonCartoes } from "@/components/Skeleton";
 import SalaDeEquipamentos from "@/components/SalaDeEquipamentos";
@@ -162,22 +162,19 @@ export default function Servidores() {
 
   if (!carregado || !usuario || !status) {
     return (
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        <NavRpg />
+      <AppShell largura="max-w-7xl">
         <div className="mt-8">
           <SkeletonCartoes quantidade={4} />
         </div>
-      </main>
+      </AppShell>
     );
   }
 
   const bootandoPelaMidia = Boolean(status.midiasSistema.midiaBoot && status.estadoOperacional.online);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <NavRpg />
-
-      <header className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <AppShell largura="max-w-7xl">
+      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="titulo text-3xl font-black text-ouro">Seu Datacenter</h1>
           <p className="max-w-3xl text-texto-suave">
@@ -187,7 +184,7 @@ export default function Servidores() {
         </div>
         <Link
           href="/loja"
-          className="rounded-xl border border-borda bg-fundo-card px-4 py-2 text-sm font-semibold text-destaque transition hover:border-destaque"
+          className="deck-cut border border-borda bg-fundo-card px-4 py-2 text-sm font-semibold uppercase tracking-wide text-destaque transition hover:border-destaque"
         >
           Abrir Mercado
         </Link>
@@ -198,7 +195,7 @@ export default function Servidores() {
           <button
             key={item.id}
             onClick={() => setAba(item.id)}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            className={`deck-cut border px-4 py-2 text-sm font-semibold transition ${
               aba === item.id
                 ? "bg-primaria/20 text-primaria"
                 : "bg-fundo-card text-texto-suave hover:text-texto"
@@ -212,7 +209,7 @@ export default function Servidores() {
 
       {aba === "operacao" && (
         <section className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="cartao rounded-2xl p-5">
+          <div className="cartao min-w-0 rounded-2xl p-5">
             <SalaDeEquipamentos
               tier={status.tier}
               numeroTotalServidores={status.numeroTotalServidores}
@@ -345,7 +342,7 @@ export default function Servidores() {
           </div>
         </section>
       )}
-    </main>
+    </AppShell>
   );
 }
 

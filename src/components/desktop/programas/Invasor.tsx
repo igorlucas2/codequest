@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import { motion } from "framer-motion";
 import CyberAvatar from "@/components/CyberAvatar";
 import ServidorRack from "@/components/ServidorRack";
@@ -52,7 +52,7 @@ export type PayloadInvasor = {
 };
 
 type RespostaRodada = { texto: string; elapsedMs: number };
-type Fase = "rodada" | "sincronizando" | "resultado" | "erro";
+type Fase = "briefing" | "rodada" | "sincronizando" | "resultado" | "erro";
 
 type EstadoInvasao = {
   fase: Fase;
@@ -62,12 +62,14 @@ type EstadoInvasao = {
   restanteMs: number;
   texto: string;
   feedback: "acerto" | "erro" | null;
+  motivoFalha: "tempo" | "comando" | null;
   inicioTs: number;
   resultado: ResultadoDuelo | null;
   mensagemErro: string | null;
 };
 
 type AcaoInvasao =
+  | { tipo: "iniciar" }
   | { tipo: "tick"; agora: number }
   | { tipo: "digitar"; valor: string }
   | { tipo: "enviar_rodada"; agora: number }
@@ -79,11 +81,12 @@ function registrarRodada(
   resposta: RespostaRodada,
   agora: number,
   feedback: "acerto" | "erro",
+  motivoFalha: "tempo" | "comando" | null = null,
 ): EstadoInvasao {
   const respostas = [...estado.respostas, resposta];
   const proximoIndice = estado.indice + 1;
   if (proximoIndice >= estado.rounds.length) {
-    return { ...estado, respostas, fase: "sincronizando", feedback, texto: "" };
+    return { ...estado, respostas, fase: "sincronizando", feedback, motivoFalha, texto: "" };
   }
   return {
     ...estado,
@@ -91,12 +94,25 @@ function registrarRodada(
     indice: proximoIndice,
     texto: "",
     feedback,
+    motivoFalha,
     restanteMs: estado.rounds[proximoIndice].limiteMs,
     inicioTs: agora,
   };
 }
 
 function reduzir(estado: EstadoInvasao, acao: AcaoInvasao): EstadoInvasao {
+  if (acao.tipo === "iniciar") {
+    if (estado.fase !== "briefing") return estado;
+    return {
+      ...estado,
+      fase: "rodada",
+      indice: 0,
+      texto: "",
+      feedback: null,
+      restanteMs: estado.rounds[0]?.limiteMs ?? 0,
+      inicioTs: Date.now(),
+    };
+  }
   if (acao.tipo === "confirmar_sucesso") {
     if (estado.fase !== "sincronizando") return estado;
     return { ...estado, fase: "resultado", resultado: acao.resultado };
@@ -117,6 +133,7 @@ function reduzir(estado: EstadoInvasao, acao: AcaoInvasao): EstadoInvasao {
           { texto: estado.texto, elapsedMs: acao.agora - estado.inicioTs },
           acao.agora,
           "erro",
+          "tempo",
         );
       }
       return { ...estado, restanteMs: restante };
@@ -127,11 +144,27 @@ function reduzir(estado: EstadoInvasao, acao: AcaoInvasao): EstadoInvasao {
       const rodada = estado.rounds[estado.indice];
       const elapsedMs = acao.agora - estado.inicioTs;
       const acertouLocal = normalizar(estado.texto) === normalizar(rodada.resposta);
-      return registrarRodada(estado, { texto: estado.texto, elapsedMs }, acao.agora, acertouLocal ? "acerto" : "erro");
+      return registrarRodada(
+        estado,
+        { texto: estado.texto, elapsedMs },
+        acao.agora,
+        acertouLocal ? "acerto" : "erro",
+        acertouLocal ? null : "comando",
+      );
     }
     default:
       return estado;
   }
+}
+
+function dicaSintaxe(resposta: string): string {
+  const limpa = resposta.trim();
+  if (limpa.startsWith("print(")) return "Parece uma chamada de função: preserve print(...), aspas e parênteses.";
+  if (limpa.startsWith("if ")) return "Parece uma condição: confira os dois pontos no final e a indentação.";
+  if (limpa.startsWith("for ")) return "Parece um loop: preserve range(...), o nome da variável e os dois pontos.";
+  if (limpa.startsWith("def ")) return "Parece uma definição de função: mantenha o nome, parênteses e os dois pontos.";
+  if (limpa.includes("=")) return "Parece uma atribuição: confira o nome da variável, o espaço e o valor exato.";
+  return "Copie a sintaxe exatamente como aparece, inclusive espaços e caracteres especiais.";
 }
 
 // Invasão PvP: digitação cronometrada decide o duelo de verdade. Fases:
@@ -141,19 +174,36 @@ export default function Invasor({ payload }: { payload: PayloadInvasor }) {
   const { proposta } = payload;
   const { voce, oponente, rounds } = proposta;
   const { recarregar } = useSessao();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const briefing = useMemo(() => {
+    const mediaSegundos = rounds.length
+      ? Math.round(rounds.reduce((soma, rodada) => soma + rodada.limiteMs, 0) / rounds.length / 100) / 10
+      : 0;
+    return {
+      rodadas: rounds.length,
+      tempoMedio: mediaSegundos,
+    };
+  }, [rounds]);
 
   const [estado, dispatch] = useReducer(reduzir, rounds, (rounds): EstadoInvasao => ({
-    fase: "rodada",
+    fase: "briefing",
     rounds,
     indice: 0,
     respostas: [],
     restanteMs: rounds[0]?.limiteMs ?? 0,
     texto: "",
     feedback: null,
+    motivoFalha: null,
     inicioTs: Date.now(),
     resultado: null,
     mensagemErro: null,
   }));
+
+  useEffect(() => {
+    if (estado.fase !== "rodada") return;
+    inputRef.current?.focus();
+  }, [estado.fase, estado.indice]);
 
   // Relógio único da rodada: só assina o timer (sistema externo); quem
   // decide o que muda a cada tick é o reducer.
@@ -218,6 +268,42 @@ export default function Invasor({ payload }: { payload: PayloadInvasor }) {
     return <Replay resultado={estado.resultado} />;
   }
 
+  if (estado.fase === "briefing") {
+    return (
+      <div className="flex h-full flex-col gap-3 text-sm">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <Lutador lado={voce} hp={voce.vida} />
+          <span className="text-lg font-black text-erro">VS</span>
+          <Lutador lado={oponente} hp={oponente.vida} espelhado />
+        </div>
+
+        <div className="rounded-xl border border-borda bg-black/40 p-3 text-xs text-texto-suave">
+          <p className="text-sm font-semibold text-texto">Antes de entrar</p>
+          <p className="mt-1">{briefing.rodadas} rodadas, uma por vez, com tempo curto e crescente pressão.</p>
+          <p className="mt-1 text-esmeralda">
+            Regra: copie o comando exatamente como aparece e pressione Enter.
+          </p>
+          <p className="mt-1">Tempo médio desta invasão: cerca de {briefing.tempoMedio}s por rodada.</p>
+        </div>
+
+        <div className="codigo rounded-xl border border-esmeralda/30 bg-black/70 p-3 text-center text-esmeralda">
+          <p className="text-xs uppercase tracking-[0.2em] text-esmeralda/60">modo invasão</p>
+          <p className="mt-2 text-base font-bold">Seu alvo é {oponente.nome}.</p>
+          <p className="mt-1 text-xs text-texto-suave">Leia com calma. Quando começar, o relógio não espera.</p>
+          <p className="mt-2 text-xs text-esmeralda/80">Dica geral: {dicaSintaxe(rounds[0]?.resposta ?? "")}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => dispatch({ tipo: "iniciar" })}
+          className="rounded-lg bg-esmeralda px-4 py-2 text-sm font-semibold text-black transition hover:opacity-90"
+        >
+          Iniciar invasão
+        </button>
+      </div>
+    );
+  }
+
   if (estado.fase === "sincronizando") {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm">
@@ -243,10 +329,31 @@ export default function Invasor({ payload }: { payload: PayloadInvasor }) {
         </span>
         {estado.feedback && (
           <span className={estado.feedback === "acerto" ? "text-sucesso" : "text-erro"}>
-            {estado.feedback === "acerto" ? "✅ conectou" : "❌ bloqueado"}
+            {estado.feedback === "acerto"
+              ? "✅ comando aceito"
+              : estado.motivoFalha === "tempo"
+                ? "⏱️ tempo esgotado"
+                : "❌ comando inválido"}
           </span>
         )}
       </div>
+
+      <div className="flex items-center justify-between text-xs text-texto-suave">
+        <span>Digite exatamente e pressione Enter.</span>
+        <span>{Math.max(0, Math.ceil(estado.restanteMs / 1000))}s</span>
+      </div>
+
+      {estado.feedback === "erro" && estado.motivoFalha === "comando" && (
+        <p className="rounded-lg border border-ouro/30 bg-ouro/10 px-3 py-2 text-xs text-ouro">
+          {dicaSintaxe(rodada.resposta)}
+        </p>
+      )}
+
+      {estado.feedback === "erro" && estado.motivoFalha === "tempo" && (
+        <p className="rounded-lg border border-erro/30 bg-erro/10 px-3 py-2 text-xs text-erro">
+          Você ficou sem tempo. Leia primeiro o formato do comando, depois digite.
+        </p>
+      )}
 
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-fundo">
         <div
@@ -271,7 +378,7 @@ export default function Invasor({ payload }: { payload: PayloadInvasor }) {
       </div>
 
       <input
-        autoFocus
+        ref={inputRef}
         value={estado.texto}
         onChange={(e) => dispatch({ tipo: "digitar", valor: e.target.value })}
         onKeyDown={(e) => {
@@ -282,6 +389,10 @@ export default function Invasor({ payload }: { payload: PayloadInvasor }) {
         autoComplete="off"
         className="codigo w-full rounded-lg border border-esmeralda/40 bg-black/50 px-3 py-2 text-esmeralda outline-none placeholder:text-esmeralda/30 focus:border-esmeralda"
       />
+
+      <p className="text-center text-xs text-texto-suave">
+        Dica: se o comando tiver espaços, sublinhados ou parênteses, copie tudo sem alterar a sintaxe.
+      </p>
     </div>
   );
 }

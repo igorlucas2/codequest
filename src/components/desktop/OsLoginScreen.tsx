@@ -10,28 +10,35 @@ export default function OsLoginScreen({
   usuarioNome,
   usuarioEmail,
   ficha,
+  sistemaNome,
+  sistemaIcone,
+  sistemaTema,
   onEntrar,
 }: {
   geracao: GeracaoPcId;
   usuarioNome: string;
   usuarioEmail: string;
   ficha: Ficha;
+  sistemaNome?: string;
+  sistemaIcone?: string;
+  sistemaTema?: GeracaoPcId;
   onEntrar: () => void;
 }) {
   const sistema = getGeracaoPc(geracao);
+  const tema = sistemaTema ?? geracao;
 
   function entrar() {
-    tocarLogin(geracao);
+    tocarLogin(tema);
     onEntrar();
   }
 
   return (
-    <div className={`os-login os-login--${geracao}`}>
+    <div className={`os-login os-login--${tema}`}>
       <div className="os-login-card">
         <div className="os-login-logo">
-          <span>{geracao === "xp" ? "XP" : geracao === "neon" ? "CQ" : "98"}</span>
+          <span>{sistemaIcone ?? (tema === "xp" ? "XP" : tema === "neon" ? "CQ" : "98")}</span>
           <div>
-            <p>{sistema.nome}</p>
+            <p>{sistemaNome ?? sistema.nome}</p>
             <small>sessao local do runner</small>
           </div>
         </div>
